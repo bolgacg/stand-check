@@ -1,5 +1,5 @@
 /* Screenshot the interactive states of the page: every act-one run, every act-two filter, and a few planted faults. */
-const { chromium } = require('/home/bolgac/projects/minimalist-workout-app/node_modules/playwright');
+const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('/home/bolgac/projects/minimalist-workout-app/node_modules/playwright'); } })();
 const path = require('path');
 const OUT = process.argv[2];
 const PAGE = 'file://' + path.resolve(__dirname, '..', 'docs', 'index.html') + '?tour=off';

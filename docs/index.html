@@ -241,7 +241,8 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
         the logger filled by repeating the last row), a <b>stuck sensor</b> (a channel that stops changing), and a
         <b>valve mismatch</b> (the valve's electrical output, position or downstream pressure does not follow its command).</li>
       <li>A <b>range limit</b> flags a channel whose value leaves the range it showed in the stand's other runs. Most
-        stands have one, so it is the comparison on this page.</li>
+        stands have one, so it is the comparison on this page; the checker contains the same range limit, so the
+        difference between them is what the three other checks add.</li>
       <li>Every result is given per <b>site</b>: one record (the channels that share one clock), one channel, or one valve,
         in one run.</li>
     </ol>
@@ -282,6 +283,8 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
       <div><b>flat</b> Exactly the same value on consecutive samples. Real sensors carry noise, so a long flat stretch means something stopped.</div>
       <div><b>driver output</b> The voltage a valve driver puts on a solenoid when commanded on. Here, on means at least three quarters of battery voltage, off at most half.</div>
       <div><b>setpoint</b> The position a motorised valve is told to go to, logged beside the position it reports.</div>
+      <div><b>jitter</b> How much the interval between rows normally varies. A gap only counts once it is longer than the record's own jitter allows.</div>
+      <div><b>operating point</b> The conditions a run is held at, such as a supply pressure. A new operating point is a run at conditions no other run reached.</div>
       <div><b>saturated</b> A sensor or amplifier that has reached the top of its range and reads flat there while the real value keeps rising.</div>
       <div><b>fit and measured runs</b> Thresholds were set on the fit runs only; the measured runs were checked once with them frozen. Act two and the coda say which is which.</div>
     </div>
@@ -372,7 +375,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
     <div class="viz" id="plantviz"></div>
     <div class="result" id="presult"></div>
   </div>
-  <h3>How big a fault has to be</h3>
+  <h3>A fault has to outlast its threshold to be caught</h3>
   <p class="small">Each panel is one kind of fault, planted <span id="nper"></span> times at each size into the measured runs. Up is the share
   caught at the planned setting; across is the size of the fault. A dot on the floor means none of the 30 was caught.</p>
   <div class="card" id="sizecard"><div id="sizeviz"></div></div>

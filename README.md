@@ -28,7 +28,7 @@ python3 study/fetch.py          # downloads the three sets (the 2 GB Delft archi
 python3 study/run_study.py      # every number on the page, written to docs/data.js
 pytest tests                    # unit tests of every rule
 node study/parity.js            # the page's JavaScript checker against the Python build
-node study/verify_page.js       # headless render, screenshots, overflow and walkthrough checks
+node study/verify_page.js       # headless render, screenshots, overflow and walkthrough checks (needs playwright)
 ```
 
 `fetch.py` checks each file against the checksum its publisher states. `run_study.py --list` prints

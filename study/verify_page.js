@@ -2,7 +2,7 @@
    probe for horizontal overflow, read back what it printed, and walk every walkthrough step.
 
    node study/verify_page.js [outdir] [url] */
-const { chromium } = require('/home/bolgac/projects/minimalist-workout-app/node_modules/playwright');
+const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('/home/bolgac/projects/minimalist-workout-app/node_modules/playwright'); } })();
 const path = require('path');
 const fs = require('fs');
 

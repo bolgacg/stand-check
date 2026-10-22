@@ -223,7 +223,7 @@
     $('tbody', t).onclick = function (e) { var r = e.target.closest('tr.frow'); if (!r) return; var i = +r.dataset.i; fOpen = fOpen === i ? -1 : i; findings(); };
     var fc = F.filter(function (f) { return f.label === 'false' && f.checker; }).reduce(function (a, f) { return a + f.count; }, 0);
     var byCat = function (cat) { return F.filter(function (f) { return f.label === 'false' && f.checker && f.category === cat; }).reduce(function (a, f) { return a + f.count; }, 0); };
-    $('#act2-h2').textContent = 'Everything it flagged in ' + D.totals.runs + ' public runs';
+    $('#act2-h2').textContent = 'On ' + D.totals.runs + ' public runs it flags ' + H.realChecker + ' of ' + H.realTotal + ' real problems; a range limit flags ' + H.realRange;
     $('#v2').innerHTML = '<p><span class="opener">On the real logs the checker flags ' + H.realChecker + ' of the ' + H.realTotal + ' problems I found; the range limit flags ' + H.realRange + '.</span> ' +
       'The range limit finds the dead thermocouples, because their readings fall outside what other runs showed. It cannot see a sensor frozen at a normal value or a dead input with no other run to compare against, and it does not read timestamps at all.</p>' +
       '<p>The checker raised ' + fc + ' false alarms. ' + byCat('range') + ' come from the range rule it shares with the range limit, on new operating points; ' +
@@ -528,19 +528,19 @@
   var DOMAIN_SVG = '<svg viewBox="0 0 360 250" role="img" aria-label="A simplified test stand: a tank, a valve with a command and a feedback, a line to the engine on a load cell, and the sensors wired to the data acquisition box" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="11" fill="#1a1d21">' +
     '<rect x="14" y="36" width="54" height="96" rx="20" fill="#f3f1ed" stroke="#5b6470"/><text x="41" y="148" text-anchor="middle">tank</text>' +
     '<line x1="68" y1="84" x2="248" y2="84" stroke="#5b6470" stroke-width="3"/>' +
-    '<path d="M118 72 L118 96 L142 72 L142 96 Z" fill="#fff" stroke="#2c4a6b" stroke-width="2"/><text x="130" y="112" text-anchor="middle">valve</text>' +
+    '<path d="M118 72 L118 96 L142 72 L142 96 Z" fill="#fff" stroke="#2c4a6b" stroke-width="2"/><text x="112" y="66" text-anchor="end">valve</text>' +
     '<rect x="102" y="10" width="56" height="22" rx="3" fill="#fff" stroke="#b4760a"/><text x="130" y="25" text-anchor="middle" font-size="10">controller</text>' +
-    '<line x1="124" y1="32" x2="124" y2="72" stroke="#b4760a" stroke-dasharray="3 2"/><text x="96" y="56" text-anchor="end" font-size="9.5" fill="#b4760a">command</text>' +
+    '<line x1="124" y1="32" x2="124" y2="72" stroke="#b4760a" stroke-dasharray="3 2"/><text x="129" y="54" font-size="9.5" fill="#b4760a">command</text>' +
     '<line x1="136" y1="96" x2="136" y2="196" stroke="#2c4a6b" stroke-dasharray="3 2"/><text x="140" y="140" font-size="9.5" fill="#2c4a6b">feedback</text>' +
     '<path d="M248 66 L288 70 L300 84 L288 98 L248 102 Z" fill="#f3f1ed" stroke="#5b6470"/><text x="276" y="120" text-anchor="middle">engine</text>' +
-    '<rect x="252" y="128" width="48" height="12" fill="#fff" stroke="#5b6470"/><text x="276" y="154" text-anchor="middle" font-size="10">load cell</text>' +
+    '<rect x="252" y="128" width="48" height="12" fill="#fff" stroke="#5b6470"/><text x="304" y="138" font-size="10">load cell</text>' +
     '<circle cx="41" cy="30" r="8" fill="#fff" stroke="#2c4a6b"/><text x="41" y="33" text-anchor="middle" font-size="8">P</text>' +
     '<circle cx="200" cy="72" r="8" fill="#fff" stroke="#2c4a6b"/><text x="200" y="75" text-anchor="middle" font-size="8">P</text>' +
     '<circle cx="222" cy="72" r="8" fill="#fff" stroke="#2c4a6b"/><text x="222" y="75" text-anchor="middle" font-size="8">T</text>' +
     '<line x1="41" y1="38" x2="41" y2="22" stroke="none"/>' +
     '<rect x="70" y="196" width="220" height="40" rx="4" fill="#2c4a6b"/><text x="180" y="214" text-anchor="middle" fill="#fff" font-size="11">data acquisition</text>' +
     '<text x="180" y="228" text-anchor="middle" fill="#dfe6ee" font-size="9.5">one row per sample, every channel</text>' +
-    '<path d="M33 30 C 20 30 20 190 90 196" fill="none" stroke="#9aa1a9" stroke-width="1"/>' +
+    '<path d="M33 30 L 6 30 L 6 216 L 70 216" fill="none" stroke="#9aa1a9" stroke-width="1"/>' +
     '<path d="M200 80 L 200 196" fill="none" stroke="#9aa1a9" stroke-width="1"/><path d="M222 80 L 222 196" fill="none" stroke="#9aa1a9" stroke-width="1"/>' +
     '<path d="M276 140 L 276 196" fill="none" stroke="#9aa1a9" stroke-width="1"/>' +
     '</svg>';
