@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Did the stand record it?</title>
+<meta name="description" content="A checker that reads raw test-stand logs and flags dropped samples, stuck sensors and valve mismatches, run on 99 public test-stand runs from three projects, with a pass or fail report for each. Bolgaç Gülen, 2026.">
+<meta name="color-scheme" content="light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;--paper:#faf9f7;--ink:#1a1d21;--soft:#5b6470;--faint:#808a96;--rule:#e2e0dc;--rule2:#c9c5be;--panel:#f3f1ed;--card:#fff;
+  --pos:#2f7d54;--neg:#b03a3a;--accent:#2c4a6b;--amber:#b4760a;--grey:#9aa1a9;--miss:#8a5a9e;
+  --serif:'Newsreader',Georgia,serif;--sans:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;padding-bottom:110px}
+a{color:var(--accent);text-decoration:none;font-weight:500}a:hover{text-decoration:underline}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px}
+@media (min-width:700px){.wrap{padding:0 24px}}
+header{padding:34px 0 20px;border-bottom:1px solid var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.14em;color:var(--faint);text-transform:uppercase}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(30px,4.4vw,46px);line-height:1.08;letter-spacing:-.01em;margin:10px 0 12px;max-width:920px;text-wrap:balance}
+.dek{max-width:760px;color:var(--soft);font-size:18.5px;font-family:var(--serif);line-height:1.5}
+@media (max-width:520px){.dek{font-size:16.5px}.byline{gap:4px 12px}}
+.byline{margin-top:16px;font-family:var(--mono);font-size:12px;color:var(--faint);display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.disclose{margin-top:8px;font-size:12.5px;color:var(--faint)}
+section{padding:42px 0 6px}
+.sec-label{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+h2{font-family:var(--serif);font-weight:600;font-size:clamp(24px,3.4vw,29px);line-height:1.2;margin-bottom:10px;text-wrap:balance}
+h3{font-family:var(--serif);font-size:20px;font-weight:600;margin:26px 0 6px}
+p{margin-bottom:12px}
+.lede{color:var(--soft);max-width:760px;margin-bottom:18px}
+.lede b,.lede strong{color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:20px 22px;margin-top:16px}
+@media (max-width:520px){.card{padding:16px 14px}}
+.card-title{font-family:var(--serif);font-size:20px;font-weight:600;margin-bottom:4px}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--mono);font-size:12px;padding:7px 12px;border:1px solid var(--rule2);border-radius:3px;background:var(--card);color:var(--soft);cursor:pointer}
+.chip:hover{color:var(--ink);border-color:var(--soft)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:500}
+.howto{font-size:13px;color:var(--soft);margin:8px 0 0;line-height:1.5}
+.howto b{color:var(--ink);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-right:6px}
+.hint{font-size:12.5px;color:var(--faint);line-height:1.45;margin-top:6px}
+.why{font-size:14.5px;color:var(--ink);background:var(--panel);border-radius:4px;padding:10px 14px;margin:0 0 12px;max-width:760px}
+.why b{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-right:6px}
+.verdict{margin-top:18px;padding:2px 0 2px 16px;border-left:3px solid var(--accent);font-size:15px;max-width:760px}
+.verdict p{margin-bottom:8px}
+.verdict.sting{border-left-color:var(--neg)}
+.verdict .opener{font-weight:600;color:var(--ink)}
+.handover{font-size:14.5px;color:var(--soft);font-style:italic;font-family:var(--serif);margin-top:14px;max-width:760px}
+.small{font-size:13.5px;color:var(--soft)}
+.note{font-size:12.5px;color:var(--faint);margin-top:10px;line-height:1.5}
+code{font-family:var(--mono);font-size:12.5px;background:var(--panel);padding:1px 4px;border-radius:3px}
+.quote{font-family:var(--serif);font-size:18px;color:var(--ink);border-left:3px solid var(--amber);padding:2px 0 2px 16px;margin:14px 0;max-width:760px}
+.quote small{display:block;font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:6px}
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin:22px 0 4px;max-width:900px}
+.qgrid div{border-top:1px solid var(--rule);padding-top:8px;font-size:15px;line-height:1.5;color:var(--soft)}
+.qgrid b{display:block;font-family:var(--serif);font-size:17px;color:var(--ink);font-weight:600;margin-bottom:2px}
+.qgrid .loss b{color:var(--neg)}
+@media (max-width:640px){.qgrid{grid-template-columns:1fr}}
+/* the answer chart */
+.bars{margin-top:14px;position:relative}
+.brow{display:grid;grid-template-columns:220px 1fr;gap:4px 14px;align-items:center;padding:7px 0;border-top:1px solid var(--rule)}
+.brow:first-child{border-top:none}
+.brow .bl{font-size:14px;line-height:1.3}
+.brow .bl small{display:block;font-family:var(--mono);font-size:11px;color:var(--faint)}
+.brow.all .bl{font-weight:600}
+.brow.loss .bl{color:var(--neg)}
+.btrack{position:relative;height:40px}
+.bar{position:absolute;left:0;height:15px;border-radius:0 2px 2px 0;transition:width .35s ease}
+.bar.c{top:2px;background:var(--accent)}
+.bar.r{top:22px;background:var(--grey)}
+.bval{position:absolute;font-family:var(--mono);font-size:11.5px;white-space:nowrap;line-height:15px;transition:left .35s ease}
+.bval.c{top:2px;color:var(--accent);font-weight:500}.bval.r{top:22px;color:var(--soft)}
+.floor{position:absolute;top:-4px;bottom:-4px;border-left:2px dashed var(--amber);pointer-events:none;transition:left .35s ease;z-index:2}
+.axis{display:grid;grid-template-columns:220px 1fr;gap:0 14px;font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.axis .ticks{position:relative;height:16px;border-top:1px solid var(--rule2)}
+.axis .ticks span{position:absolute;top:2px;transform:translateX(-50%)}
+.axis .ticks span:first-child{transform:none}.axis .ticks span:last-child{transform:translateX(-100%)}
+.axtitle{text-align:center;font-family:var(--sans);font-size:12px;color:var(--soft);margin-top:4px}
+@media (max-width:640px){.brow,.axis{grid-template-columns:1fr}.axis>div:first-child{display:none}.btrack{height:38px}}
+.legend{display:flex;gap:16px;font-size:12.5px;color:var(--soft);margin:12px 0 0;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:2px}
+.legend i.dash{width:0;height:14px;border-left:2px dashed var(--amber);border-radius:0}
+.slider{width:100%;max-width:560px;accent-color:var(--accent)}
+.ctl{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+.ctl label{font-size:14px}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;background:var(--panel);border:1px solid var(--rule);border-radius:6px;overflow:hidden;margin-top:14px}
+.stat>div{padding:12px 14px;border-left:1px solid var(--rule)}.stat>div:first-child{border-left:none}
+.stat .k{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+.stat .n{font-family:var(--mono);font-size:19px;font-weight:500}.stat .s{font-size:12px;color:var(--soft);margin-top:3px}
+@media (max-width:520px){.stat{grid-template-columns:1fr}.stat>div{border-left:none;border-top:1px solid var(--rule)}.stat>div:first-child{border-top:none}}
+/* tables */
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);text-align:left;padding:0 10px 8px 0;border-bottom:1px solid var(--rule2);vertical-align:bottom}
+td{padding:8px 10px 8px 0;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+td.r,th.r{text-align:right}
+tr:last-child td{border-bottom:none}
+.pill{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--rule2);border-radius:3px;padding:2px 6px;color:var(--soft);white-space:nowrap}
+.pill.fail,.pill.real{color:var(--neg);border-color:var(--neg)}
+.pill.pass{color:var(--pos);border-color:var(--pos)}
+.pill.missed{color:var(--miss);border-color:var(--miss)}
+.pill.false{color:var(--amber);border-color:var(--amber)}
+.yes{color:var(--accent);font-weight:600}.no{color:var(--faint)}
+tr.frow{cursor:pointer}
+tr.frow:hover td{background:var(--panel)}
+tr.frow.open td{background:#eef2f7}
+tr.reason td{background:#f7f9fb;font-size:13.5px;color:var(--soft);padding:10px 12px}
+.gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 24px;font-size:13px;color:var(--soft);margin-top:10px}
+.gloss b{color:var(--ink);font-family:var(--mono);font-size:12px;font-weight:500}
+.prim{padding-left:20px;line-height:1.7;font-size:14.5px;color:var(--soft)}
+.prim li{margin-bottom:6px}.prim b{color:var(--ink)}
+/* the domain drawing */
+.domain{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;margin-top:8px}
+@media (max-width:720px){.domain{grid-template-columns:1fr}}
+.domain svg{width:100%;height:auto;display:block}
+.logt{font-family:var(--mono);font-size:12px;width:100%}
+.logt th{font-size:9.5px;letter-spacing:.05em;padding:0 6px 6px 0}
+.logt td{padding:5px 6px 5px 0;white-space:nowrap}
+.logt .bad{color:var(--neg);font-weight:600}
+.logt tr.gap td{border-top:2px dashed var(--neg)}
+.flist{font-size:13px;color:var(--soft);margin-top:10px;padding-left:18px}
+.flist b{color:var(--neg)}
+/* charts */
+.viz{position:relative}.viz svg{display:block}
+.panel{margin-top:12px}
+.panel h4{font-size:13px;font-weight:600;margin-bottom:2px}
+.panel h4 .pill{margin-left:6px}
+.reportbox{margin-top:12px}
+.rep-head{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px 18px;font-size:13px;margin:10px 0 14px}
+.rep-head div{border-top:1px solid var(--rule);padding-top:4px}
+.rep-head b{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:500}
+.rep-verdict{font-family:var(--serif);font-size:22px;font-weight:600;margin:4px 0 8px}
+.rep-verdict.fail{color:var(--neg)}.rep-verdict.pass{color:var(--pos)}
+.rep-sec{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:16px 0 4px}
+.sign{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:22px;font-size:13px;color:var(--soft)}
+.sign div{border-top:1px solid var(--ink);padding-top:4px}
+select{font-family:var(--mono);font-size:13px;padding:6px 8px;border:1px solid var(--rule2);border-radius:3px;background:var(--card);max-width:100%}
+.btn{font-family:var(--mono);font-size:12px;padding:7px 14px;border-radius:4px;border:1px solid var(--accent);background:var(--card);color:var(--accent);cursor:pointer}
+.btn:hover{background:var(--accent);color:#fff}
+.row2{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.result{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+@media (max-width:600px){.result{grid-template-columns:1fr}}
+.result>div{background:var(--panel);border-radius:4px;padding:10px 12px;font-size:14px}
+.result .k{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+.limits{margin-top:20px;border-left:3px solid var(--neg);padding:2px 0 2px 16px;max-width:780px}
+.limits p{font-size:14.5px;color:var(--soft)}
+.limits b{color:var(--ink)}
+.mcard td:first-child{width:38%;color:var(--soft)}
+footer{border-top:1px solid var(--rule);margin-top:44px;padding:20px 0 30px;font-family:var(--mono);font-size:12px;color:var(--faint)}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+/* the walkthrough */
+#tour{position:absolute;top:0;left:0;right:0;z-index:50;display:none;pointer-events:none}
+#tour.on{display:block}
+.tour-hl{position:absolute;border:2px solid var(--accent);border-radius:8px;box-shadow:0 0 0 9999px rgba(26,29,33,.55);transition:all .35s ease;pointer-events:none}
+.tour-card{position:absolute;width:min(400px,calc(100vw - 32px));background:var(--card);border:1px solid var(--rule2);border-radius:8px;padding:18px 20px;box-shadow:0 6px 30px rgba(0,0,0,.18);pointer-events:auto}
+.tour-card .tk{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.tour-card p{font-size:14px;line-height:1.55;color:var(--ink);margin:0 0 12px}
+.tour-nav{display:flex;align-items:center;gap:8px}
+.tour-nav .dots{flex:1;display:flex;gap:5px}
+.tour-nav .dots i{width:6px;height:6px;border-radius:50%;background:var(--rule2)}
+.tour-nav .dots i.on{background:var(--accent)}
+.tour-btn{font-family:var(--mono);font-size:12px;padding:7px 14px;border-radius:4px;border:1px solid var(--rule2);background:var(--card);color:var(--soft);cursor:pointer}
+.tour-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.tour-open{font-family:var(--mono);font-size:12px;padding:6px 12px;border-radius:4px;border:1px solid var(--accent);background:var(--card);color:var(--accent);cursor:pointer}
+.tour-open:hover{background:var(--accent);color:#fff}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}html{scroll-behavior:auto}}
+@media print{
+  body{background:#fff;padding:0}
+  body.printing>*:not(#printarea){display:none!important}
+  #printarea{display:block!important}
+  #printarea .card{border:none;padding:0}
+  #tour{display:none!important}
+}
+#printarea{display:none}
+</style>
+</head>
+<body>
+<div id="tour"><div class="tour-hl"></div><div class="tour-card"></div></div>
+
+<header><div class="wrap">
+  <div class="eyebrow">Work sample &middot; instrumentation and control &middot; public test-stand data</div>
+  <h1>Did the test stand record what happened?</h1>
+  <p class="dek" id="dek">Loading the study.</p>
+  <div class="byline">
+    <span>Bolga&ccedil; G&uuml;len</span>
+    <span>Data: three public projects, named below</span>
+    <a href="https://github.com/bolgacg/stand-check">github.com/bolgacg/stand-check</a>
+    <button class="tour-open" id="tourbtn">Walk me through it</button>
+  </div>
+  <p class="disclose">Built with Claude, an AI coding assistant. Nothing on this page comes from Rocket Lab or describes its systems.</p>
+</div></header>
+
+<section id="bluf" style="padding-top:28px"><div class="wrap">
+  <div class="sec-label">The answer, before anything else</div>
+  <h2 id="bluf-h2">The checker against a range limit</h2>
+  <p class="lede" id="bluf-lede">Each bar is the share of faults I planted into real test logs that a check caught: dark for
+  this checker, grey for a range limit set from the stand's other runs, dashed for flagging at random with the same number
+  of false alarms. <span id="bluf-last"></span></p>
+  <div class="card" id="blufcard">
+    <div class="bars" id="bars"></div>
+    <div class="axis"><div></div><div class="ticks" id="ticks"></div></div>
+    <div class="axtitle">Share of planted faults caught</div>
+    <div class="legend">
+      <span><i style="background:var(--accent)"></i>this checker</span>
+      <span><i style="background:var(--grey)"></i>range limit on every channel</span>
+      <span><i class="dash"></i>flagging sites at random, same false alarms</span>
+    </div>
+    <div class="ctl" style="margin-top:16px">
+      <label for="sslider">Checker setting: thresholds at <b class="num" id="slabel">1.00</b> times the planned values</label>
+      <input class="slider" type="range" id="sslider" min="0" max="100" value="50" aria-describedby="shint">
+      <p class="hint" id="shint">Drag it. Left makes every threshold stricter, so both checks flag more healthy channels; right
+      relaxes them. The range limit moves with it, as tight as it can go without flagging more healthy sites than the
+      checker. The middle is the setting fixed before the measured runs were checked.</p>
+    </div>
+    <div class="stat" id="blufstat"></div>
+  </div>
+  <div class="qgrid" id="qgrid"></div>
+  <p class="hint">Everything below is how this was measured and where it fails. The planted faults sit in copies of real
+  runs; the real problems in the published logs are counted separately, in act two.</p>
+</div></section>
+
+<section id="primer"><div class="wrap">
+  <div class="sec-label">Before anything else</div>
+  <h2>Five things to know</h2>
+  <p class="lede">This page is about the log a test stand writes, so here is what that log is and what can go wrong in it.
+  Nothing after this assumes you have read one.</p>
+  <div class="card">
+    <ol class="prim">
+      <li>A test stand's data acquisition system writes one <b>row</b> per sample: a timestamp and one number for each
+        <b>channel</b>, such as a pressure transducer, a thermocouple, a load cell, or a valve's command and its feedback.</li>
+      <li>A <b>channel map</b> says what each channel is, its unit, and whether it must be live. Every map here is written
+        from the publisher's own README, overview or column headers, never from the checker's output.</li>
+      <li>Three kinds of fault leave every value looking normal: <b>dropped samples</b> (rows that never arrived, or that
+        the logger filled by repeating the last row), a <b>stuck sensor</b> (a channel that stops changing), and a
+        <b>valve mismatch</b> (the valve's electrical output, position or downstream pressure does not follow its command).</li>
+      <li>A <b>range limit</b> flags a channel whose value leaves the range it showed in the stand's other runs. Most
+        stands have one, so it is the comparison on this page.</li>
+      <li>Every result is given per <b>site</b>: one record (the channels that share one clock), one channel, or one valve,
+        in one run.</li>
+    </ol>
+  </div>
+  <div class="card" id="domain">
+    <div class="card-title">A stand, and the log it writes</div>
+    <p class="small">A simplified stand on the left; on the right, the rows it logs, with the three faults marked in red.</p>
+    <div class="domain">
+      <div id="domainsvg"></div>
+      <div>
+        <table class="logt">
+          <thead><tr><th>time s</th><th>tank psi</th><th>chamber psi</th><th>temp C</th><th>valve cmd</th><th>valve out V</th></tr></thead>
+          <tbody>
+            <tr><td>0.010</td><td>702</td><td>12</td><td>21</td><td>1</td><td>12.0</td></tr>
+            <tr><td>0.020</td><td>698</td><td>140</td><td>21</td><td>1</td><td>12.0</td></tr>
+            <tr class="gap"><td class="bad">0.060</td><td>681</td><td>388</td><td class="bad">21</td><td>1</td><td>12.0</td></tr>
+            <tr><td>0.070</td><td>677</td><td>402</td><td class="bad">21</td><td>1</td><td>12.0</td></tr>
+            <tr><td>0.080</td><td>672</td><td>411</td><td class="bad">21</td><td>0</td><td class="bad">12.0</td></tr>
+          </tbody>
+        </table>
+        <ul class="flist">
+          <li><b>Dropped samples:</b> the clock jumps from 0.020 to 0.060 s, so three rows never arrived.</li>
+          <li><b>Stuck sensor:</b> the temperature reads 21 C while the chamber climbs past 400 psi.</li>
+          <li><b>Valve mismatch:</b> the command goes to 0 but the driver output stays at 12 V.</li>
+        </ul>
+        <p class="note">An illustration, not data. Every value here is inside a plausible range, which is the point.</p>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Terms, in the order they appear</div>
+    <div class="gloss">
+      <div><b>planted fault</b> A fault I wrote into a copy of a real run, at a known site, time and size, so the count of what a check catches is exact.</div>
+      <div><b>false alarm</b> A flag on a site that has nothing wrong with it.</div>
+      <div><b>hotfire, cold flow</b> A test that burns propellant, and one that only flows fluid through the plumbing.</div>
+      <div><b>record</b> The rows a logger writes on one clock. A run can have several, at different rates.</div>
+      <div><b>live, spare</b> A live channel is one the documentation names, so it must carry a signal. A spare one is reported for information only.</div>
+      <div><b>flat</b> Exactly the same value on consecutive samples. Real sensors carry noise, so a long flat stretch means something stopped.</div>
+      <div><b>driver output</b> The voltage a valve driver puts on a solenoid when commanded on. Here, on means at least three quarters of battery voltage, off at most half.</div>
+      <div><b>setpoint</b> The position a motorised valve is told to go to, logged beside the position it reports.</div>
+      <div><b>saturated</b> A sensor or amplifier that has reached the top of its range and reads flat there while the real value keeps rising.</div>
+      <div><b>fit and measured runs</b> Thresholds were set on the fit runs only; the measured runs were checked once with them frozen. Act two and the coda say which is which.</div>
+    </div>
+  </div>
+</div></section>
+
+<section id="words"><div class="wrap">
+  <div class="sec-label">Their words</div>
+  <h2>What the advertisement asks for</h2>
+  <p class="lede">The job this page does is in the advertisement for a Junior Ground Systems Engineer, Instrumentation and
+  Control, in Auckland:</p>
+  <div class="quote">Analyse post-flight and post-test data to understand system performance and drive improvements
+    <small>Rocket Lab, Junior Ground Systems Engineer, Instrumentation &amp; Control, Auckland, posted 15 October 2026</small></div>
+  <div class="quote">Advise on instrumentation best practices and drive continuous product and process improvement
+    <small>Same advertisement</small></div>
+  <div class="quote">Apply a risk-based approach to your work, always with a fallback solution in place
+    <small>Same advertisement</small></div>
+  <p class="small">The first line is the job: before post-test data says anything about a system, someone has to know the
+  data itself is sound. The second is why the report names every dead and frozen channel instead of averaging over it. The
+  third is why every limit of this checker is stated beside its results.</p>
+  <p class="small">The data comes from three projects that publish raw test-stand logs under an open licence: a student
+  liquid-engine controller on GitHub, a cryogenic feed-line rig at the German Aerospace Center (DLR), and an igniter bench
+  at TU Delft. Several student teams publish richer logs without a licence; those are not used. Nothing on this page comes
+  from Rocket Lab or says anything about its stands, sensors or software.</p>
+  <div class="tscroll"><table id="standtable"><thead></thead><tbody></tbody></table></div>
+</div></section>
+
+<section id="act1"><div class="wrap">
+  <div class="sec-label">Act one</div>
+  <h2>One run, read by the checker</h2>
+  <p class="why"><b>Why this matters</b>Before any count means anything, you need to see what a pass and a fail look like
+  on a real channel.</p>
+  <div class="chips" id="showchips" role="group" aria-label="Choose a run"></div>
+  <p class="howto"><b>Click</b> a run above. The charts and the failed lines of its report change with it.</p>
+  <div class="card" id="showcard">
+    <p class="small" id="showlede"></p>
+    <div id="showpanels"></div>
+    <p class="note">Shaded in red: what the checker flagged. Shaded in purple: a real problem it missed. Thin grey lines:
+    the sensor beside the one in question, where the stand has one.</p>
+  </div>
+  <div class="verdict" id="v1"></div>
+  <p class="handover">One run shows the checker can read a log. The next question is how it does on every public run,
+  including the places where it is wrong.</p>
+</div></section>
+
+<section id="act2"><div class="wrap">
+  <div class="sec-label">Act two</div>
+  <h2 id="act2-h2">Everything it flagged in the public runs</h2>
+  <p class="why"><b>Why this matters</b>A checker that only finds faults I planted could still be useless on real logs,
+  where problems are rarer and stranger.</p>
+  <p class="lede">I ran both checks on every run and labelled each flag myself after looking at the raw data: a real problem
+  in the published log, or a false alarm. Real problems I found that neither check flagged are listed as missed. The same
+  finding in many runs of one day is one row.</p>
+  <div class="chips" id="fchips" role="group" aria-label="Filter the findings"></div>
+  <p class="howto"><b>Click</b> a row to read why it got its label.</p>
+  <div class="card" id="fcard">
+    <div class="tscroll"><table id="ftable"><thead></thead><tbody></tbody></table></div>
+  </div>
+  <div class="verdict" id="v2"></div>
+  <p class="handover">The real logs give a few dozen problems, too few to measure detection on. So the next act plants
+  hundreds of faults of known size into real runs, and lets you plant one yourself.</p>
+</div></section>
+
+<section id="act3"><div class="wrap">
+  <div class="sec-label">Act three</div>
+  <h2>Plant a fault yourself</h2>
+  <p class="why"><b>Why this matters</b>A planted fault has a known place, time and size, so whether a check caught it is a
+  fact rather than a judgement.</p>
+  <p class="lede">This is the 2019 hotfire log from the engine-controller project, the cleaner of its two logs. Pick a
+  channel or valve, a kind of fault and its size. The checker runs again in your browser on the changed log, and the two
+  verdicts below update.</p>
+  <div class="card" id="plantcard">
+    <div class="row2">
+      <label class="small" for="psite">Site</label>
+      <select id="psite"></select>
+    </div>
+    <div class="chips" id="pkinds" role="group" aria-label="Kind of fault" style="margin-top:10px"></div>
+    <div class="ctl" style="margin-top:10px">
+      <label for="psize">Size: <b class="num" id="psizelab"></b></label>
+      <input class="slider" type="range" id="psize" min="0" max="100" value="50">
+    </div>
+    <div class="ctl">
+      <label for="pat">Starts at: <b class="num" id="patlab"></b></label>
+      <input class="slider" type="range" id="pat" min="0" max="100" value="50">
+    </div>
+    <p class="hint">Drag the sliders. The grey line is the log as published, the dark line the log with your fault in it,
+    and the shading is where the fault sits.</p>
+    <div class="viz" id="plantviz"></div>
+    <div class="result" id="presult"></div>
+  </div>
+  <h3>How big a fault has to be</h3>
+  <p class="small">Each panel is one kind of fault, planted <span id="nper"></span> times at each size into the measured runs. Up is the share
+  caught at the planned setting; across is the size of the fault. A dot on the floor means none of the 30 was caught.</p>
+  <div class="card" id="sizecard"><div id="sizeviz"></div></div>
+  <div class="verdict sting" id="v3"></div>
+  <p class="handover">Catching a fault is half the job. The other half is a document someone can sign before the data is
+  used, which is the next act.</p>
+</div></section>
+
+<section id="act4"><div class="wrap">
+  <div class="sec-label">Act four</div>
+  <h2>The report a test engineer signs</h2>
+  <p class="why"><b>Why this matters</b>The output of a data check is not a chart; it is a pass or fail per channel that
+  someone signs before the data is used to qualify anything.</p>
+  <p class="lede">Pick any run. The report lists every record, channel and valve the channel map names, with the evidence
+  for each verdict in plain words.</p>
+  <div class="row2">
+    <label class="small" for="rsel">Run</label>
+    <select id="rsel"></select>
+    <button class="btn" id="printbtn">Print this report</button>
+  </div>
+  <div class="card reportbox" id="report"></div>
+  <p class="handover">The coda says how all of this was built and what it cannot do.</p>
+</div></section>
+
+<section id="coda"><div class="wrap">
+  <div class="sec-label">How it was built</div>
+  <h2>Method, limits and sources</h2>
+  <div class="card" id="selfcheckcard">
+    <div class="card-title">This page checking itself</div>
+    <p class="small">The numbers above could have been typed by hand. So the page recomputes the headline counts from the
+    per-site scores it ships, and re-checks both hotfire logs with its own JavaScript copy of the checker, then prints what
+    it gets beside what the Python build got.</p>
+    <p class="small" id="selfcheck">Running.</p>
+  </div>
+
+  <h3>The split, and why it is there</h3>
+  <p class="small" id="splittext"></p>
+
+  <div class="card">
+    <div class="card-title">What was fitted, in one box</div>
+    <p class="small">Nothing here is a trained model, but a threshold chosen by looking at data is still a model, so it
+    gets the same card.</p>
+    <div class="tscroll"><table class="mcard"><tbody id="mcard"></tbody></table></div>
+  </div>
+
+  <h3>How the faults were planted</h3>
+  <p class="small" id="planttext"></p>
+  <h3>How the real flags were labelled</h3>
+  <p class="small">I looked at the raw data behind every flag and wrote down whether it is a real problem in the published
+  log or a false alarm, with the reason, before the planted-fault results were counted. The reasons are in act two. I wrote
+  the checker too, so these labels are not independent; each one states what in the data supports it, so you can disagree
+  with a specific row.</p>
+
+  <div class="limits" id="limits">
+    <h3>Limits, stated before you find them</h3>
+    <p><b>It cannot see a sensor that freezes but keeps its noise.</b> <span id="lim1"></span> A blocked pressure port
+    does this: the transducer keeps reading the trapped pressure plus its electrical noise. Catching it needs a second
+    sensor at the same point to compare against, as the DLR rig has at each station, or a check of the pressure against
+    the valve sequence. This checker has neither.</p>
+    <p><b>It missed the saturated dynamic sensors in the DLR tests.</b> They sit flat at their top for <span id="lim-clip"></span>, and the
+    stuck check waits <span id="lim-fast"></span> on fast channels. A check for a channel flat at its own maximum would catch them. I saw a
+    research note about these flat tops before fixing the thresholds and chose not to tune for them, so the miss is reported as
+    measured.</p>
+    <p><b>Valve timing on the Delft bench is only as good as its valve log.</b> The valve states carry no timestamps and no
+    documented rate, and their record length disagrees with the thermocouple record by up to <span id="lim-drift"></span> percent in one run. A valve
+    that answers half a second late cannot be told apart from that drift.</p>
+    <p><b>Three stands is a small sample.</b> <span id="lim-hot"></span>
+    The thresholds are per channel type, not per stand, and a new stand would need its own fit runs.</p>
+    <p><b>This is a post-test check in Python and JavaScript.</b> It is not a real-time interlock, not PLC logic and not
+    LabVIEW, and it reads files after the test rather than signals during it.</p>
+    <p><b>The range limit here is a stand-in.</b> A real stand's limits come from its test plan. Mine come from the stand's
+    other runs, which suits a range limit as well as any data-driven choice can, but it is still my choice.</p>
+  </div>
+
+  <h3>Changes made after the measured runs were checked</h3>
+  <p class="small">Three, all listed with reasons in
+  <a href="https://github.com/bolgacg/stand-check/blob/main/PLAN.md">PLAN.md</a>: planting faults only where neither check
+  already flags; starting a planted valve fault where the valve check starts looking; and counting the range limit on
+  channels only, so one out-of-range channel is not counted three times. None changed a threshold.</p>
+
+  <h3>Sources and licences</h3>
+  <ul class="small" id="sources" style="padding-left:18px;line-height:1.8"></ul>
+  <p class="small">Changes to the data: the hotfire logs are used as published; the DLR workbooks were converted to arrays;
+  the Delft pressures were converted from volts with the README's formula; and every chart is thinned for drawing while
+  keeping each window's minimum and maximum. The checks always run on the full data.</p>
+  <h3>Run it yourself</h3>
+  <p class="small"><code>python3 study/fetch.py</code> downloads the three sets and checks them against their published
+  checksums; <code>python3 study/run_study.py</code> regenerates every number on this page; <code>pytest tests</code>
+  runs the unit tests. Code and plan: <a href="https://github.com/bolgacg/stand-check">github.com/bolgacg/stand-check</a>.</p>
+</div></section>
+
+<div id="printarea"></div>
+
+<footer><div class="wrap">
+  <span>Bolga&ccedil; G&uuml;len &middot; every number on this page is generated by the build script from the data named above, not typed</span>
+  <span id="buildinfo"></span>
+</div></footer>
+
+<script src="data.js"></script>
+<script src="checker.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

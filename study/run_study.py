@@ -23,6 +23,22 @@ S_GRID = sorted(set(np.round(np.logspace(-3, 4, 281), 6).tolist() + [1.0]))
 M_GRID = sorted(set(np.round(np.linspace(-0.5, 2.0, 251), 6).tolist() + [checker.RANGE_MARGIN]))
 
 
+def is_healthy(run, key, realkeys):
+    """A site with no real problem. A record counts only if none of its channels has one either,
+    so a range limit is not charged a false alarm for pointing at a real fault."""
+    rid = run['run_id']
+    if '%s|%s' % (rid, key) in realkeys:
+        return False
+    kind, name = key.split(':', 1)
+    if kind == 'stream':
+        return not any('%s|channel:%s' % (rid, c) in realkeys
+                       for c, ch in run['channels'].items() if ch['stream'] == name)
+    if kind == 'valve':
+        v = next(v for v in run['valves'] if v['name'] == name)
+        return '%s|channel:%s' % (rid, v['fb']) not in realkeys
+    return True
+
+
 def flagged(site):
     return site['score'] > 1.0 or site['m'] > checker.RANGE_MARGIN
 
@@ -48,18 +64,13 @@ def rescore(run, key, env):
     kind, name = key.split(':', 1)
     if kind == 'stream':
         sc, ev = checker.score_stream(run, name)
-        live = checker.live_channels(run)
-        ms = [checker.range_mstar(run['streams'][name]['t'], ch['x'], *env.get(run['stand'], c, run['run_id']))[0]
-              for c, ch in live.items() if ch['stream'] == name]
-        return sc, (max(ms) if ms else -1.0)
+        return sc, checker.NO_RANGE
     if kind == 'channel':
         s1, _, m, _ = checker.score_channel(run, name, env)
         return max(s1, max(0.0, m) / checker.RANGE_MARGIN), m
     v = next(v for v in run['valves'] if v['name'] == name)
     sc, _ = checker.score_valve(run, v)
-    fb = run['channels'][v['fb']]
-    m = checker.range_mstar(run['streams'][fb['stream']]['t'], fb['x'], *env.get(run['stand'], v['fb'], run['run_id']))[0]
-    return sc, m
+    return sc, checker.valve_range(run, v, env)
 
 
 def planted_pass(measured, healthy, env):
@@ -76,7 +87,7 @@ def planted_pass(measured, healthy, env):
             tries = 0
             while n < N_PER and tries < N_PER * 40:
                 tries += 1
-                st = stands_here[n % len(stands_here)]
+                st = stands_here[tries % len(stands_here)]
                 rid, key = pool[st][int(rng.integers(len(pool[st])))]
                 res = inject.plant(by_id[rid], key, kind, size, rng)
                 if res is None:
@@ -122,12 +133,17 @@ def main():
         realkeys.add('%s|%s' % (m['run'], m['site']))
 
     measured = [r for r in runs if r['split'] == 'measured']
-    healthy = [(r['run_id'], k) for r in measured for k in real[r['run_id']] if '%s|%s' % (r['run_id'], k) not in realkeys]
-    cases = planted_pass(measured, healthy, env)
+    healthy = [(r['run_id'], k) for r in measured for k in real[r['run_id']] if is_healthy(r, k, realkeys)]
+    # Faults are planted only where neither method flags anything at its marked setting, so a site
+    # that is already flagged cannot be credited with catching what is planted there.
+    quiet = [(rid, k) for rid, k in healthy if not flagged(real[rid][k])]
+    cases = planted_pass(measured, quiet, env)
     results = dict(seed=SEED, n_per=N_PER, cases=cases,
                    healthy=[dict(run=rid, site=k, kind=k.split(':')[0], stand=rid.split('-')[0],
                                  score=real[rid][k]['score'], m=real[rid][k]['m']) for rid, k in healthy])
     json.dump(results, open(OUT_JSON, 'w'), default=float)
+    if '--no-page' in sys.argv:
+        return
     import build_page_data
     build_page_data.build(runs, env, real, adj, results, git_sha())
 

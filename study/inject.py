@@ -155,7 +155,10 @@ def plant(run, key, kind, size, rng):
     nxt = edges[edges > e]
     fb = run['channels'][v['fb']]
     tf = run['streams'][fb['stream']]['t']
-    s0 = int(np.searchsorted(tf, te))
+    # A pressure response is searched for from one second before the logged command, because
+    # an untimed valve log can trail the pressure; the fault has to start there too.
+    start = te - 1.0 if v['kind'] == 'response' else te
+    s0 = int(np.searchsorted(tf, start))
     s1 = int(np.searchsorted(tf, tc[nxt[0]])) if len(nxt) else len(tf)
     if s0 < 2 or s1 - s0 < 2:
         return None
@@ -167,7 +170,7 @@ def plant(run, key, kind, size, rng):
     else:
         src = seg_t - size
         late = np.interp(src, tf[s0:s1], fb['x'][s0:s1])
-        late[src < te] = pre
+        late[src < start] = pre
     held = late == pre
     noise = residual_noise(fb['x'], s1 - s0, (s0, s1), rng)
     late = np.where(held, pre + noise, late)

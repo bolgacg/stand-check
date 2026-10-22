@@ -1,0 +1,33 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install
+        run: pip install numpy==2.4.4 pytest
+
+      - name: Unit tests of every rule
+        run: pytest -q tests
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: The page's JavaScript checker reproduces the Python build
+        run: node study/parity.js

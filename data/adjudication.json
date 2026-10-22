@@ -1,0 +1,318 @@
+{
+ "sites": {
+  "sterenberg-2019|stream:telemetry": {
+   "label": "real",
+   "category": "timing",
+   "reason": "Rows are missing: the longest interval is 33 ms where the log normally writes a row every 10 ms, so about two rows never arrived."
+  },
+  "delft-240320_082606|stream:valve state": {
+   "label": "real",
+   "category": "timing",
+   "reason": "The valve-state record covers 25.5 s of a run whose thermocouple record covers 65.6 s, so most of the valve history is missing or was logged far slower than assumed."
+  },
+  "delft-240320_082606|valve:main valve 1": {
+   "label": "real",
+   "category": "valve",
+   "reason": "Main valve 1 is logged open for 6 s, but the oxygen-line pressure stays near 1 bar (it touches 10 bar only briefly) and the resonator tip never warms above 21 C. The log shows a command without the flow."
+  },
+  "delft-240320_085913|stream:valve state": {
+   "label": "real",
+   "category": "timing",
+   "reason": "The valve-state record is 16 percent shorter than the thermocouple record of the same run, so valve times in this run are uncertain by seconds."
+  },
+  "delft-240320_093730|valve:main valve 1": {
+   "label": "real",
+   "category": "valve",
+   "reason": "The first valve cycle lines up with the pressure within 0.13 s, the second is 1.8 s out. The valve-state log lost time inside the run, so its second cycle cannot be trusted."
+  },
+  "delft-240320_121809|stream:pressure": {
+   "label": "real",
+   "category": "timing",
+   "reason": "The pressure record is 11 percent shorter than the thermocouple record of the same run."
+  },
+  "delft-240320_121809|stream:valve state": {
+   "label": "real",
+   "category": "timing",
+   "reason": "The valve-state record is 12 percent shorter than the thermocouple record of the same run."
+  },
+  "sterenberg-2018-03-17|stream:telemetry": {
+   "label": "real",
+   "category": "timing",
+   "reason": "Two rows carry the same timestamp, the longest interval is 45 ms against a normal 11 ms, and the log holds 884 rows where its own 100-a-second rate gives 948."
+  },
+  "sterenberg-2018-03-17|channel:pressure[0] (psi)": {
+   "label": "real",
+   "category": "dead",
+   "reason": "Reads exactly 0 on 499 of 884 rows and never below 0, with single-row spikes up to 2,769 psi between zeros. No pressure behaves like that; the channel is not measuring."
+  },
+  "sterenberg-2018-03-17|channel:pressure[7] (psi)": {
+   "label": "real",
+   "category": "dead",
+   "reason": "Sits at -199 psi for the whole hotfire, a pressure no gauge can read, while the tanks are being emptied. Nothing is connected to this input."
+  },
+  "sterenberg-2018-03-17|channel:pressure[12] (psi)": {
+   "label": "real",
+   "category": "dead",
+   "reason": "Sits at -310 psi for the whole hotfire, a pressure no gauge can read, while the tanks are being emptied. Nothing is connected to this input."
+  },
+  "sterenberg-2018-03-17|channel:pressure[13] (psi)": {
+   "label": "real",
+   "category": "dead",
+   "reason": "Sits at -310 psi for the whole hotfire, a pressure no gauge can read, while the tanks are being emptied. Nothing is connected to this input."
+  },
+  "sterenberg-2018-03-17|channel:pressure[14] (psi)": {
+   "label": "real",
+   "category": "dead",
+   "reason": "Sits at -310 psi for the whole hotfire, a pressure no gauge can read, while the tanks are being emptied. Nothing is connected to this input."
+  },
+  "sterenberg-2018-03-17|channel:pressure[15] (psi)": {
+   "label": "real",
+   "category": "dead",
+   "reason": "Sits at -310 psi for the whole hotfire, a pressure no gauge can read, while the tanks are being emptied. Nothing is connected to this input."
+  },
+  "sterenberg-2018-03-17|channel:thermocouple[0] (degC)": {
+   "label": "real",
+   "category": "dead",
+   "reason": "Reads exactly 1,023 C on every row of the hotfire. That is a fixed converter code, not a temperature; the thermocouple input is open."
+  },
+  "sterenberg-2018-03-17|channel:thermocouple[1] (degC)": {
+   "label": "real",
+   "category": "dead",
+   "reason": "Reads exactly 2,047 C on every row of the hotfire. That is a fixed converter code, not a temperature; the thermocouple input is open."
+  },
+  "sterenberg-2018-03-17|channel:thermocouple[2] (degC)": {
+   "label": "real",
+   "category": "dead",
+   "reason": "Reads exactly 2,047 C on every row of the hotfire. That is a fixed converter code, not a temperature; the thermocouple input is open."
+  },
+  "sterenberg-2018-03-17|channel:thermocouple[3] (degC)": {
+   "label": "real",
+   "category": "dead",
+   "reason": "Reads exactly 2,047 C on every row of the hotfire. That is a fixed converter code, not a temperature; the thermocouple input is open."
+  },
+  "sterenberg-2018-03-17|valve:driver output 8": {
+   "label": "false",
+   "category": "range",
+   "reason": "The output followed both of its commands within one row. The range limit fires because its off level here is 0 V, below the 2.5 V that output 8 never dropped under in the 2019 log."
+  },
+  "sterenberg-2018-03-17|valve:driver output 15": {
+   "label": "false",
+   "category": "valve",
+   "reason": "Output 15 is on only during the IGNITION state in both logs, so it drives the igniter. It dropped from 12.3 V to 1.1 V within one row of the off command, then drifted up to 6.2 V, where unconnected outputs float in both logs. The check calls anything above half the battery voltage \"not off\", and 6.2 V is just above half of 12.3 V."
+  },
+  "dlr-20200805_9|channel:PD403": {
+   "label": "real",
+   "category": "frozen",
+   "reason": "The dynamic pressure at station S3 reads 19.1 bar on every one of its 300,001 samples, through a surge that the static sensor beside it (PS402) records rising to over 60 bar. The value is inside the normal range, so a range limit passes it."
+  },
+  "dlr-20200805_9|stream:dynamic pressure": {
+   "label": "false",
+   "category": "timing",
+   "reason": "Wrong cause. The rows repeat because PD403 is frozen and, for about 10 ms at the same moment, PD409 and PD406 sit flat at their own highest values. The timestamps keep advancing and the logger did not drop samples. The flat tops are a real problem of their own, listed below as missed."
+  },
+  "dlr-20200805_10|channel:PD403": {
+   "label": "real",
+   "category": "frozen",
+   "reason": "The dynamic pressure at station S3 reads 24.2 bar on every one of its 300,001 samples, through a surge that the static sensor beside it (PS402) records rising to over 60 bar. The value is inside the normal range, so a range limit passes it."
+  },
+  "dlr-20200805_10|stream:dynamic pressure": {
+   "label": "false",
+   "category": "timing",
+   "reason": "Wrong cause. The rows repeat because PD403 is frozen and, for about 10 ms at the same moment, PD409 and PD406 sit flat at their own highest values. The timestamps keep advancing and the logger did not drop samples. The flat tops are a real problem of their own, listed below as missed."
+  },
+  "dlr-20200805_10|channel:PSLP": {
+   "label": "false",
+   "category": "range",
+   "reason": "The receiving tank starts this test at 3.4 bar, higher than in any other test, and rises by 2.2 bar with the surge, as it does by 1.5 bar in test 9. A new operating point, not a sensor fault."
+  },
+  "dlr-20200806_13|stream:flowmeter": {
+   "label": "real",
+   "category": "timing",
+   "reason": "The flowmeter sent no reading for 280 ms, about five of its usual 58 ms intervals and half again its longest wait in any other test."
+  },
+  "dlr-20200806_13|channel:PSHP": {
+   "label": "false",
+   "category": "range",
+   "reason": "This is the lowest-pressure test of the set (3.5 bar at the start, per the published overview), so the supply tank reads lower than in any other test. A new operating point, not a sensor fault."
+  },
+  "dlr-20200806_16|channel:PD403": {
+   "label": "false",
+   "category": "range",
+   "reason": "This is the hardest test of the set (104 bar at the valve). PD403 peaks at 81.9 bar and the static sensor beside it at 81.6 bar, so the reading is right; it is simply higher than any other test."
+  },
+  "delft-240529_084127|channel:PS2": {
+   "label": "false",
+   "category": "range",
+   "reason": "The methane-line pressure drops from 16.8 to 13.7 bar while main valve 2 is open, as a supply line does under flow. This is the lowest-pressure combustion run, so the dip is below the other runs. Not a fault."
+  },
+  "delft-240529_084127|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_090559|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_091317|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_091626|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_092341|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_092957|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_102814|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_103821|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_104050|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_104248|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_104542|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_105754|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_105941|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_110111|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_110704|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_110851|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_111126|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_111713|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_111921|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_112108|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_112439|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_112606|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_112743|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_113144|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "delft-240529_113249|channel:TC0": {
+   "label": "real",
+   "category": "dead",
+   "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  }
+ },
+ "missed": [
+  {
+   "run": "dlr-20200805_9",
+   "site": "channel:PD409",
+   "category": "clipped",
+   "reason": "During the surge PD409 sits flat at its own highest value, 66.9 bar, for 20.0 ms, while the static sensor beside it (PS408) peaks at 81.5 bar. The dynamic channel saturated, so the surge it recorded is too low. The stuck check waits 50 ms on fast channels and misses it; the value is inside the range, so the range limit misses it too."
+  },
+  {
+   "run": "dlr-20200805_9",
+   "site": "channel:PD406",
+   "category": "clipped",
+   "reason": "During the surge PD406 sits flat at its own highest value, 73.0 bar, for 10.4 ms. Missed for the same reason as PD409."
+  },
+  {
+   "run": "dlr-20200805_10",
+   "site": "channel:PD409",
+   "category": "clipped",
+   "reason": "During the surge PD409 sits flat at its own highest value, 65.8 bar, for 20.7 ms, while the static sensor beside it (PS408) peaks at 94.7 bar. The dynamic channel saturated, so the surge it recorded is too low. The stuck check waits 50 ms on fast channels and misses it; the value is inside the range, so the range limit misses it too."
+  },
+  {
+   "run": "dlr-20200805_10",
+   "site": "channel:PD406",
+   "category": "clipped",
+   "reason": "During the surge PD406 sits flat at its own highest value, 72.3 bar, for 11.4 ms. Missed for the same reason as PD409."
+  },
+  {
+   "run": "dlr-20200806_16",
+   "site": "channel:PD409",
+   "category": "clipped",
+   "reason": "During the surge PD409 sits flat at its own highest value, 93.1 bar, for 18.3 ms, while the static sensor beside it (PS408) peaks at 104.0 bar. The dynamic channel saturated, so the surge it recorded is too low. The stuck check waits 50 ms on fast channels and misses it; the value is inside the range, so the range limit misses it too."
+  },
+  {
+   "run": "dlr-20200806_16",
+   "site": "channel:PD406",
+   "category": "clipped",
+   "reason": "During the surge PD406 sits flat at its own highest value, 96.4 bar, for 9.1 ms. Missed for the same reason as PD409."
+  },
+  {
+   "run": "sterenberg-2018-03-17",
+   "site": "channel:pressure[6] (psi)",
+   "category": "dead",
+   "reason": "Reads between -199 and -193 psi for the whole hotfire, like pressure input 7, so nothing is connected. It flickers between six values, so it is never flat for long enough, and with no other run to set a limit the range check has nothing to compare it with."
+  }
+ ]
+}

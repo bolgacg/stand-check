@@ -134,4 +134,20 @@ the blind spot with a number.
 
 ## Changes after the measured runs were checked
 
-None yet.
+1. 19 October 2026. Faults were first planted at every healthy site. At the few healthy sites
+   that a method already flags at its marked setting (a false alarm), every fault planted there
+   counted as caught, which credited that method with faults it did not see: every planted
+   30 ms valve delay "caught" by the checker sat on driver output 15, which it already flags.
+   Planting is now restricted to healthy sites that neither method flags at its marked setting.
+   False alarms are still counted on all healthy sites.
+2. 19 October 2026. For valves checked against a pressure response, a planted delay or missing
+   response now starts one second before the logged command, the start of the window the
+   check searches. Starting it at the command left the part of a real response that came before
+   a late-logged command in place, so three planted "never responded" faults were not planted
+   at all.
+3. 19 October 2026. The range limit first marked a whole record, or a valve, whenever any
+   channel in it left its range. That counted one out-of-range channel up to three times, and it
+   credited the range limit with the 2018 log's timing faults because that record's
+   thermocouples were out of range. A range limit reads values, not timestamps, so it now acts
+   on channels only, plus the valve-driver output voltages, which have no channel site of their
+   own. Its false alarms on the measured runs fell from 9 to 5 of 408 healthy sites as a result.

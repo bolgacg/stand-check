@@ -108,9 +108,19 @@ def load_sterenberg():
         streams = {'telemetry': dict(t=t, timing='regular', rate=None, declared_rate=float(df['samplerate (Hz)'].median()))}
         ch = {}
 
+        def readable(col):
+            # The 2018 log names its inputs only by number; say what kind of input each is.
+            import re
+            m = re.match(r'(pressure|load|thermocouple)\[(\d+)\]', col)
+            if m:
+                return {'pressure': 'Pressure input', 'load': 'Load cell', 'thermocouple': 'Thermocouple input'}[m.group(1)] + ' ' + m.group(2)
+            if col.startswith('thrust_load'):
+                return 'Thrust (sum of load cells)'
+            return col
+
         def add(col, cls, unit, role, label=None):
             ch[col] = dict(stream='telemetry', x=df[col].to_numpy(float), cls=cls, unit=unit, role=role,
-                           label=label or names.get(col, col))
+                           label=label or names.get(col, readable(col)))
         for c in press:
             add(c, 'p_slow', 'psi', 'live')
         for c in spare:
@@ -132,7 +142,7 @@ def load_sterenberg():
                                cmd=bit.astype(float), fb=col, batt=ebatt, label='Valve driver output %d' % k))
             cmd_edges += edges_of(t, bit)
         for name, sp, pos in servos:
-            add(pos, 'pos', 'deg', 'live', name + ' position')
+            add(pos, 'pos', 'deg', 'live', name[0].upper() + name[1:] + ' position')
             sp_x = df[sp].to_numpy(float)
             valves.append(dict(name=name, kind='position', stream='telemetry', cmd=sp_x, fb=pos,
                                label=name[0].upper() + name[1:]))

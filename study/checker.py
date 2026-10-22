@@ -10,6 +10,7 @@ import numpy as np
 from stands import FLAT_LIMIT, CLASS_WORDS
 
 ALWAYS, NEVER_CAME = 1000.0, 100.0
+NO_RANGE = -1.0       # the range limit's margin score where it does not apply
 MIN_FLAT = 5          # a flat stretch must be at least this many samples
 RANGE_MARGIN = 0.10   # the range limit's own setting: 10 percent of the envelope's span
 PERSIST = 3           # samples in a row for a range or valve flag
@@ -157,7 +158,7 @@ def valve_electrical(t, cmd, v, batt):
         txt = 'commanded %s, output %s V (battery %s V) at t = %s, %s after the last command (limit %s)' % (
             'on' if cmd[j] > 0.5 else 'off', fmt_val(v[j]), fmt_val(batt[j]), fmt_t(t[j]), fmt_dur(age[j]), fmt_dur(W_ELEC))
     else:
-        txt = 'output followed all %d command changes within %s' % (len(edges), fmt_dur(W_ELEC))
+        txt = 'output followed %s within %s' % (changes(len(edges), 'command change'), fmt_dur(W_ELEC))
     return score, dict(rule='valve', text=txt, edges=len(edges), t=float(t[j]))
 
 
@@ -171,7 +172,7 @@ def valve_position(t, sp, p):
         txt = 'position %s against setpoint %s at t = %s, %s after the last change (limits %g degrees, %s)' % (
             fmt_val(p[j]), fmt_val(sp[j]), fmt_t(t[j]), fmt_dur(age[j]), POS_TOL, fmt_dur(W_POS))
     else:
-        txt = 'within %g degrees of its setpoint by %s after each of %d changes' % (POS_TOL, fmt_dur(W_POS), len(edges))
+        txt = 'within %g degrees of its setpoint by %s after %s' % (POS_TOL, fmt_dur(W_POS), changes(len(edges), 'change', each=True))
     return score, dict(rule='valve', text=txt, edges=len(edges), t=float(t[j]))
 
 
@@ -259,22 +260,28 @@ def check_run(run, env):
     """Every site of one run: its checker score and the range limit's margin score (m*)."""
     sites = {}
     live = live_channels(run)
+    # The range limit reads values, not timestamps, so it never marks a record (m = NO_RANGE). It
+    # marks a valve only through a driver-output voltage, which has no channel site of its own;
+    # a position or pressure feedback channel is judged once, at its own channel site.
     for sname in run['streams']:
         sc, ev = score_stream(run, sname)
-        ms = [range_mstar(run['streams'][sname]['t'], ch['x'], *env.get(run['stand'], c, run['run_id']))[0]
-              for c, ch in live.items() if ch['stream'] == sname]
-        sites['stream:' + sname] = dict(kind='stream', name=sname, score=sc, m=max(ms) if ms else -1.0, ev=ev)
+        sites['stream:' + sname] = dict(kind='stream', name=sname, score=sc, m=NO_RANGE, ev=ev)
     for c in live:
         s1, e1, m, e2 = score_channel(run, c, env)
         sites['channel:' + c] = dict(kind='channel', name=c, score=max(s1, max(0.0, m) / RANGE_MARGIN),
                                      stuck=s1, m=m, ev=dict(stuck=e1, range=e2))
     for v in run['valves']:
         sc, ev = score_valve(run, v)
-        fbc = v['fb']
-        t_fb = run['streams'][run['channels'][fbc]['stream']]['t']
-        m = range_mstar(t_fb, run['channels'][fbc]['x'], *env.get(run['stand'], fbc, run['run_id']))[0]
-        sites['valve:' + v['name']] = dict(kind='valve', name=v['name'], score=sc, m=m, ev=ev)
+        sites['valve:' + v['name']] = dict(kind='valve', name=v['name'], score=sc, m=valve_range(run, v, env), ev=ev)
     return sites
+
+
+def valve_range(run, v, env):
+    fbc = v['fb']
+    if run['channels'][fbc]['role'] != 'valve':
+        return NO_RANGE
+    t_fb = run['streams'][run['channels'][fbc]['stream']]['t']
+    return range_mstar(t_fb, run['channels'][fbc]['x'], *env.get(run['stand'], fbc, run['run_id']))[0]
 
 
 def envelopes(runs):
@@ -303,6 +310,12 @@ class Envelopes:
 
 
 # ------------------------------------------------------------------ wording
+
+def changes(n, noun, each=False):
+    if n == 1:
+        return 'its one ' + noun
+    return ('each of %d %ss' if each else 'all %d %ss') % (n, noun)
+
 
 def fmt_val(v):
     v = float(v)
@@ -336,7 +349,7 @@ def fmt_t(s):
 def site_label(run, key):
     kind, name = key.split(':', 1)
     if kind == 'stream':
-        return '%s record' % name
+        return '%s record' % name.capitalize()
     if kind == 'channel':
         ch = run['channels'][name]
         return ch['label']
