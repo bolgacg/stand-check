@@ -212,8 +212,8 @@
       var sameDay = f.runs.every(function (l) { return dateOf(l) === dateOf(f.runs[0]); });
       var where = f.count > 1 ? f.count + ' runs' + (sameDay ? ' of ' + esc(dateOf(f.runs[0])) : '') : esc(f.runs[0]);
       var tr = '<tr class="frow' + (i === fOpen ? ' open' : '') + '" data-i="' + i + '"><td><b>' + esc(f.siteLabel) + '</b><div class="small">' + where +
-        ' &middot; ' + esc(D.stands[f.stand].title) + '</div></td><td>' + (f.checker ? '<span class="yes">flagged</span>' : '<span class="no">passed</span>') +
-        '</td><td>' + (f.range ? '<span class="yes">flagged</span>' : '<span class="no">passed</span>') + '</td><td><span class="pill ' + f.label + '">' + lab[f.label] + '</span></td></tr>';
+        ' &middot; ' + esc(D.stands[f.stand].title) + '</div></td><td data-l="Checker">' + (f.checker ? '<span class="yes">flagged</span>' : '<span class="no">passed</span>') +
+        '</td><td data-l="Range limit">' + (f.range ? '<span class="yes">flagged</span>' : '<span class="no">passed</span>') + '</td><td><span class="pill ' + f.label + '">' + lab[f.label] + '</span></td></tr>';
       if (i === fOpen) {
         tr += '<tr class="reason"><td colspan="4">' + esc(f.reason) + (f.checkerText ? '<div class="note">Checker: ' + esc(f.checkerText) + '.</div>' : '') +
           (f.rangeText ? '<div class="note">Range limit: ' + esc(f.rangeText) + '.</div>' : '') + '</td></tr>';

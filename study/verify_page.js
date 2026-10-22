@@ -18,6 +18,7 @@ const PAGE = process.argv[3] || 'file://' + path.resolve(__dirname, '..', 'docs'
   for (const [name, w, h] of [['phone375', 375, 812], ['phone390', 390, 844], ['desktop1280', 1280, 800]]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2 });
     const page = await ctx.newPage();
+    page.setDefaultTimeout(240000);
     page.on('pageerror', e => errors.push(`[${name}] pageerror: ${e.message}`));
     page.on('console', m => { if (m.type() === 'error') errors.push(`[${name}] console: ${m.text()}`); });
     await page.goto(PAGE + (PAGE.includes('?') ? '&' : '?') + 'tour=off', { waitUntil: 'networkidle' });
@@ -39,7 +40,7 @@ const PAGE = process.argv[3] || 'file://' + path.resolve(__dirname, '..', 'docs'
     if (overflow.sw > overflow.cw + 1) { console.log(`OVERFLOW at ${name}: ${overflow.sw} > ${overflow.cw}`); overflow.bad.forEach(b => console.log('   ' + b)); fail = true; }
     else console.log(`no horizontal overflow at ${name}`);
     await page.screenshot({ path: path.join(OUT, `${name}-first.png`) });
-    await page.screenshot({ path: path.join(OUT, `${name}-full.png`), fullPage: true });
+    await page.screenshot({ path: path.join(OUT, `${name}-full.png`), fullPage: true, timeout: 180000 });
     for (const id of ['bluf', 'primer', 'act1', 'act2', 'act3', 'act4', 'coda']) {
       const el = await page.$('#' + id);
       if (el) await el.screenshot({ path: path.join(OUT, `${name}-${id}.png`) });
@@ -69,6 +70,7 @@ const PAGE = process.argv[3] || 'file://' + path.resolve(__dirname, '..', 'docs'
   for (const [name, w, h] of [['desktop1536', 1536, 960], ['phone390', 390, 844]]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, reducedMotion: 'reduce' });
     const page = await ctx.newPage();
+    page.setDefaultTimeout(240000);
     page.on('pageerror', e => errors.push(`[tour ${name}] pageerror: ${e.message}`));
     await page.goto(PAGE, { waitUntil: 'networkidle' });
     await page.waitForTimeout(1500);

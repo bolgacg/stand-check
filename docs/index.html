@@ -111,6 +111,14 @@ tr.frow{cursor:pointer}
 tr.frow:hover td{background:var(--panel)}
 tr.frow.open td{background:#eef2f7}
 tr.reason td{background:#f7f9fb;font-size:13.5px;color:var(--soft);padding:10px 12px}
+@media (max-width:600px){
+  #ftable thead{display:none}
+  #ftable tr.frow{display:block;border-bottom:1px solid var(--rule);padding:10px 0 8px}
+  #ftable tr.frow td{display:inline-block;border:none;padding:2px 14px 0 0;font-size:13px}
+  #ftable tr.frow td:first-child{display:block;font-size:14px;padding:0 0 4px}
+  #ftable tr.frow td[data-l]::before{content:attr(data-l) ': ';color:var(--faint)}
+  #ftable tr.reason{display:block}#ftable tr.reason td{display:block}
+}
 .gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 24px;font-size:13px;color:var(--soft);margin-top:10px}
 .gloss b{color:var(--ink);font-family:var(--mono);font-size:12px;font-weight:500}
 .prim{padding-left:20px;line-height:1.7;font-size:14.5px;color:var(--soft)}
