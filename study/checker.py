@@ -15,6 +15,13 @@ MIN_FLAT = 5          # a flat stretch must be at least this many samples
 RANGE_MARGIN = 0.10   # the range limit's own setting: 10 percent of the envelope's span
 PERSIST = 3           # samples in a row for a range or valve flag
 W_ELEC, W_POS, W_RESP = 0.1, 1.5, 1.0
+# Added after the measured runs were checked (PLAN.md, change 4): a channel that sits at its own
+# highest or lowest value for longer than this many samples. Twice the longest such run in any fit
+# run of the class, and at least 10.
+RAIL_MIN = {'p_fast': 10, 'p_slow': 10, 'load': 10, 'temp': 52, 'pos': 10, 'flow': 10, 'density': 54}
+# The simple baseline (PLAN.md, change 5): a fixed flatline over 100 samples on every channel, and a
+# gap of more than one and a half times the median interval on every timestamped record.
+SIMPLE_FLAT, SIMPLE_GAP = 100, 0.5
 POS_TOL = 10.0
 
 
@@ -51,6 +58,38 @@ def stuck(t, x, cls):
         ev = 'flat at %s for %s from t = %s (limit %s)' % (fmt_val(x[i]), fmt_dur(dur), fmt_t(t[i]), fmt_dur(limit))
     return score, dict(rule='stuck', samples=n, start=float(t[i]), seconds=dur, limit=limit, whole=bool(whole),
                        value=float(x[i]), text=ev)
+
+
+def rail(t, x, cls):
+    """Longest run at the channel's own maximum or minimum, in units of its class limit."""
+    best = (0, 0, None, None)
+    for v, which in ((np.max(x), 'highest'), (np.min(x), 'lowest')):
+        n, i = longest_true(x == v)
+        if n > best[0]:
+            best = (n, i, v, which)
+    n, i, v, which = best
+    lim = RAIL_MIN[cls]
+    whole = n >= len(x)
+    if whole:
+        txt = 'never leaves one value, %s' % fmt_val(v)
+    else:
+        txt = 'sits at its own %s value, %s, for %d samples (%s) from t = %s (limit %d samples)' % (
+            which, fmt_val(v), n, fmt_dur(float(t[i + n - 1] - t[i])), fmt_t(t[i]), lim)
+    return n / lim, dict(rule='rail', samples=n, start=float(t[i]), value=float(v), text=txt)
+
+
+def simple_flat(t, x):
+    n, i, dur = flat(t, x)
+    return n / SIMPLE_FLAT
+
+
+def simple_gap(st):
+    if st['timing'] == 'untimed':
+        return NO_RANGE
+    dt = np.diff(st['t'])
+    if (dt <= 0).any():
+        return ALWAYS
+    return max(0.0, (float(dt.max()) / float(np.median(dt)) - 1) / SIMPLE_GAP)
 
 
 def range_mstar(t, x, lo, hi):
@@ -265,14 +304,19 @@ def check_run(run, env):
     # a position or pressure feedback channel is judged once, at its own channel site.
     for sname in run['streams']:
         sc, ev = score_stream(run, sname)
-        sites['stream:' + sname] = dict(kind='stream', name=sname, score=sc, m=NO_RANGE, ev=ev)
+        sites['stream:' + sname] = dict(kind='stream', name=sname, score=sc, m=NO_RANGE, ev=ev,
+                                        simple=simple_gap(run['streams'][sname]), rail=NO_RANGE)
     for c in live:
         s1, e1, m, e2 = score_channel(run, c, env)
+        t = run['streams'][run['channels'][c]['stream']]['t']
+        ra, e3 = rail(t, run['channels'][c]['x'], run['channels'][c]['cls'])
         sites['channel:' + c] = dict(kind='channel', name=c, score=max(s1, max(0.0, m) / RANGE_MARGIN),
-                                     stuck=s1, m=m, ev=dict(stuck=e1, range=e2))
+                                     stuck=s1, m=m, ev=dict(stuck=e1, range=e2, rail=e3),
+                                     simple=simple_flat(t, run['channels'][c]['x']), rail=ra)
     for v in run['valves']:
         sc, ev = score_valve(run, v)
-        sites['valve:' + v['name']] = dict(kind='valve', name=v['name'], score=sc, m=valve_range(run, v, env), ev=ev)
+        sites['valve:' + v['name']] = dict(kind='valve', name=v['name'], score=sc, m=valve_range(run, v, env), ev=ev,
+                                           simple=NO_RANGE, rail=NO_RANGE)
     return sites
 
 

@@ -1,7 +1,7 @@
 # stand-check
 
 A post-test data check for rocket-engine and propulsion test stands. It reads a raw test log and a
-channel map, and prints a pass or fail report for every record, channel and valve in the run:
+channel map, and prints a pass or fail table for every record, channel and valve in the run:
 
 | Check | What fails it |
 |---|---|
@@ -10,11 +10,19 @@ channel map, and prints a pass or fail report for every record, channel and valv
 | Valve mismatch | A valve-driver output in the wrong state 0.1 s after its command, a motorised valve more than 10 degrees from its setpoint 1.5 s after a change, or a line pressure that does not answer a valve command within 1 s |
 | Range limit | A channel outside the range it showed in the stand's other runs, widened by 10 percent |
 
-The page at **https://bolgacg.github.io/stand-check/** shows it run on 99 public test-stand runs from
-three projects. It compares the checker with a range limit on every channel, using faults planted into
-copies of real runs and the real problems in the published logs. It also states where the checker
-fails: it cannot see a sensor that freezes but keeps its noise, and it missed three DLR tests in which
-dynamic pressure sensors saturated for 9 to 21 ms.
+Two comparisons sit beside it: the **plain checks** a stand would otherwise run (a flatline of more than
+100 identical samples, and a timestamp interval of more than one and a half times the median), and the
+range limit on its own, kept as a floor because the planted faults stay in range by design. A **rail
+check** (a channel flat at its own highest or lowest value) was added after an outside review, once the
+misses it fixes were known, and is reported apart from the planned result.
+
+The page at **https://bolgacg.github.io/stand-check/** runs all of this on 99 public test-stand runs
+from three projects, 49 of them measured with the thresholds frozen. On 960 faults planted into copies of
+measured runs, the checker catches 485, the plain checks 257 and the range limit none, each with 5 false
+alarms on 408 healthy sites. On the real logs it flags 46 of the 53 problems I labelled by hand, against
+45 for the plain checks; most real problems are channels that never move. It loses to a plain flatline on
+frozen fast channels, it cannot see a sensor that freezes but keeps its noise, and its freeze limits were
+fitted on short student runs.
 
 All data is public. It comes from Nicholas Sterenberg's engine-controller repository (BSD-3-Clause),
 from DLR Lampoldshausen's liquid-nitrogen fluid-hammer set on Zenodo (CC BY 4.0), and from TU Delft's
@@ -33,13 +41,13 @@ node study/verify_page.js       # headless render, screenshots, overflow and wal
 
 `fetch.py` checks each file against the checksum its publisher states. `run_study.py --list` prints
 every site the checks flag on the real data; `data/adjudication.json` holds my label for each one (a
-real problem or a false alarm, with the reason) and the real problems that both checks missed. The
+real problem or a false alarm, with the reason) and the real problems the planned checker missed. The
 study refuses to run while any flagged site is unlabelled.
 
 ## How it was measured
 
 `PLAN.md` fixes the checks, the thresholds, the split and the planting protocol. It was committed
-before the measured runs were checked, and it lists the three changes made afterwards, with reasons.
+before the measured runs were checked, and it lists the six changes made afterwards, with reasons.
 Thresholds were set on the fit runs (the 2019 hotfire log, the DLR tests of 3 August 2020, and the
 Delft runs of 20 March 2024). Every reported count comes from the other 49 runs.
 

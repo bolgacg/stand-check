@@ -118,7 +118,8 @@ problems found by neither method are listed too, when I know of them.
 Planted into copies of measured runs, at healthy sites only, inside the active part of the run
 (from one second before the first valve command to one second after the last). Seed 20261019.
 Each kind and size is planted 30 times at a random run, site and time. The stands take turns,
-so the 38 measured Delft runs do not drown out the single measured hotfire log.
+so the 42 measured Delft runs do not drown out the single measured hotfire log. (First written as 38,
+a miscount corrected on 22 October 2026; the code never used the number.)
 
 | Kind | Sizes |
 |---|---|
@@ -151,3 +152,19 @@ the blind spot with a number.
    thermocouples were out of range. A range limit reads values, not timestamps, so it now acts
    on channels only, plus the valve-driver output voltages, which have no channel site of their
    own. Its false alarms on the measured runs fell from 9 to 5 of 408 healthy sites as a result.
+4. 22 October 2026, after an outside review. A **rail check** was added: a channel that sits at its
+   own highest or lowest value for more samples than twice the longest such run in any fit run of
+   its type (at least 10 samples; 52 for temperature, 54 for density). It was written after seeing
+   the misses it fixes (the saturated DLR dynamic sensors and the flickering dead input in the 2018
+   log), so its results are reported apart from the planned checker's and never folded into the
+   planned headline. The planned checker's numbers are unchanged.
+5. 22 October 2026, after the same review. The range limit catches none of the planted faults by
+   construction, so it is kept only as a floor, and a **simple baseline** is added: the simplest
+   form of the checks a stand runs, a flatline of more than 100 identical samples on any channel and
+   a timestamp interval of more than one and a half times the record's median. It is reported beside
+   the planned checker on every chart and table.
+6. 22 October 2026. With a third method, a planted fault now counts as caught by a method only when
+   it changes that method's verdict for the site: flagged with the fault, not flagged as published.
+   The planting pool already guaranteed this for the planned checker and the range limit at their
+   marked settings, so the planned numbers are unchanged; it matters for the simple baseline, which
+   already flags every flowmeter record, and at other settings of the slider.

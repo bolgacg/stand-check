@@ -40,7 +40,13 @@ def is_healthy(run, key, realkeys):
 
 
 def flagged(site):
+    """Flagged by the planned checker or the range limit at their marked settings (the preregistered pair)."""
     return site['score'] > 1.0 or site['m'] > checker.RANGE_MARGIN
+
+
+def flagged_any(site):
+    """Flagged by any method on the page, including the two added after the measured runs."""
+    return flagged(site) or site['simple'] > 1.0 or site['rail'] > 1.0
 
 
 def real_pass(runs, env):
@@ -53,27 +59,32 @@ def real_pass(runs, env):
 def list_flags(runs, real):
     for run in runs:
         for key, site in real[run['run_id']].items():
-            if flagged(site):
-                print('%s|%s  [%s]  checker %.2f%s  range m %.3f%s  :: %s' % (
+            if flagged_any(site):
+                print('%s|%s  [%s]  checker %.2f%s  range m %.3f%s  simple %.2f%s  rail %.2f%s :: %s' % (
                     run['run_id'], key, run['split'], site['score'], ' FLAG' if site['score'] > 1 else '',
                     site['m'], ' FLAG' if site['m'] > checker.RANGE_MARGIN else '',
+                    site['simple'], ' FLAG' if site['simple'] > 1 else '', site['rail'], ' FLAG' if site['rail'] > 1 else '',
                     checker.verdict_text(run, key, site)))
 
 
 def rescore(run, key, env):
+    """(checker, range margin, simple baseline, rail check) for one site of a changed run."""
     kind, name = key.split(':', 1)
+    NR = checker.NO_RANGE
     if kind == 'stream':
         sc, ev = checker.score_stream(run, name)
-        return sc, checker.NO_RANGE
+        return sc, NR, checker.simple_gap(run['streams'][name]), NR
     if kind == 'channel':
         s1, _, m, _ = checker.score_channel(run, name, env)
-        return max(s1, max(0.0, m) / checker.RANGE_MARGIN), m
+        ch = run['channels'][name]
+        t = run['streams'][ch['stream']]['t']
+        return max(s1, max(0.0, m) / checker.RANGE_MARGIN), m, checker.simple_flat(t, ch['x']), checker.rail(t, ch['x'], ch['cls'])[0]
     v = next(v for v in run['valves'] if v['name'] == name)
     sc, _ = checker.score_valve(run, v)
-    return sc, checker.valve_range(run, v, env)
+    return sc, checker.valve_range(run, v, env), NR, NR
 
 
-def planted_pass(measured, healthy, env):
+def planted_pass(measured, healthy, env, before):
     rng = np.random.default_rng(SEED)
     stand_order = ['sterenberg', 'dlr', 'delft']
     by_id = {r['run_id']: r for r in measured}
@@ -93,8 +104,10 @@ def planted_pass(measured, healthy, env):
                 if res is None:
                     continue
                 new, key, info = res
-                sc, m = rescore(new, key, env)
-                cases.append(dict(kind=kind, size=si, stand=st, run=rid, site=key, score=float(sc), m=float(m), info=info))
+                sc, m, sp, ra = rescore(new, key, env)
+                b = before[(rid, key)]
+                cases.append(dict(kind=kind, size=si, stand=st, run=rid, site=key, score=float(sc), m=float(m),
+                                  simple=float(sp), rail=float(ra), before=[b['score'], b['m'], b['simple'], b['rail']], info=info))
                 n += 1
             print('planted %-14s %-6s %d cases' % (kind, size, n), flush=True)
     return cases
@@ -121,8 +134,9 @@ def main():
         return
     adj = json.load(open(ADJ))
     labels = adj['sites']
+    missed_keys = {'%s|%s' % (m['run'], m['site']) for m in adj.get('missed', [])}
     missing = [(r['run_id'], k) for r in runs for k, s in real[r['run_id']].items()
-               if flagged(s) and '%s|%s' % (r['run_id'], k) not in labels]
+               if flagged_any(s) and '%s|%s' % (r['run_id'], k) not in labels and '%s|%s' % (r['run_id'], k) not in missed_keys]
     if missing:
         print('unlabelled flagged sites:', len(missing))
         for m in missing[:40]:
@@ -137,10 +151,12 @@ def main():
     # Faults are planted only where neither method flags anything at its marked setting, so a site
     # that is already flagged cannot be credited with catching what is planted there.
     quiet = [(rid, k) for rid, k in healthy if not flagged(real[rid][k])]
-    cases = planted_pass(measured, quiet, env)
+    before = {(rid, k): real[rid][k] for rid, k in quiet}
+    cases = planted_pass(measured, quiet, env, before)
     results = dict(seed=SEED, n_per=N_PER, cases=cases,
                    healthy=[dict(run=rid, site=k, kind=k.split(':')[0], stand=rid.split('-')[0],
-                                 score=real[rid][k]['score'], m=real[rid][k]['m']) for rid, k in healthy])
+                                 score=real[rid][k]['score'], m=real[rid][k]['m'], simple=real[rid][k]['simple'],
+                                 rail=real[rid][k]['rail']) for rid, k in healthy])
     json.dump(results, open(OUT_JSON, 'w'), default=float)
     if '--no-page' in sys.argv:
         return

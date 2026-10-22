@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{color-scheme:light;--paper:#faf9f7;--ink:#1a1d21;--soft:#5b6470;--faint:#808a96;--rule:#e2e0dc;--rule2:#c9c5be;--panel:#f3f1ed;--card:#fff;
-  --pos:#2f7d54;--neg:#b03a3a;--accent:#2c4a6b;--amber:#b4760a;--grey:#9aa1a9;--miss:#8a5a9e;
+  --pos:#2f7d54;--neg:#b03a3a;--accent:#2c4a6b;--amber:#b4760a;--grey:#b9bec4;--plain:#6f98c2;--miss:#8a5a9e;
   --serif:'Newsreader',Georgia,serif;--sans:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace}
 *{box-sizing:border-box;margin:0}
 html{scroll-behavior:smooth}
@@ -69,19 +69,25 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--panel);padding:1p
 .brow .bl small{display:block;font-family:var(--mono);font-size:11px;color:var(--faint)}
 .brow.all .bl{font-weight:600}
 .brow.loss .bl{color:var(--neg)}
-.btrack{position:relative;height:40px}
-.bar{position:absolute;left:0;height:15px;border-radius:0 2px 2px 0;transition:width .35s ease}
+.btrack{position:relative;height:52px}
+.bar{position:absolute;left:0;height:14px;border-radius:0 2px 2px 0;transition:width .35s ease}
 .bar.c{top:2px;background:var(--accent)}
-.bar.r{top:22px;background:var(--grey)}
-.bval{position:absolute;font-family:var(--mono);font-size:11.5px;white-space:nowrap;line-height:15px;transition:left .35s ease}
-.bval.c{top:2px;color:var(--accent);font-weight:500}.bval.r{top:22px;color:var(--soft)}
+.bar.s{top:19px;background:var(--plain)}
+.bar.r{top:36px;background:var(--grey)}
+.bval{position:absolute;font-family:var(--mono);font-size:11px;white-space:nowrap;line-height:14px;transition:left .35s ease}
+.bval.c{top:2px;color:var(--accent);font-weight:500}.bval.s{top:19px;color:#3f6a92}.bval.r{top:36px;color:var(--soft)}
 .floor{position:absolute;top:-4px;bottom:-4px;border-left:2px dashed var(--amber);pointer-events:none;transition:left .35s ease;z-index:2}
 .axis{display:grid;grid-template-columns:220px 1fr;gap:0 14px;font-family:var(--mono);font-size:10.5px;color:var(--faint)}
 .axis .ticks{position:relative;height:16px;border-top:1px solid var(--rule2)}
 .axis .ticks span{position:absolute;top:2px;transform:translateX(-50%)}
 .axis .ticks span:first-child{transform:none}.axis .ticks span:last-child{transform:translateX(-100%)}
 .axtitle{text-align:center;font-family:var(--sans);font-size:12px;color:var(--soft);margin-top:4px}
-@media (max-width:640px){.brow,.axis{grid-template-columns:1fr}.axis>div:first-child{display:none}.btrack{height:38px}}
+@media (max-width:640px){.brow,.axis{grid-template-columns:1fr}.axis>div:first-child{display:none}.btrack{height:52px}
+  .brow{padding:5px 0;gap:2px}.brow .bl small{display:inline;margin-left:8px}}
+.railnote{font-size:13.5px;color:var(--soft);margin-top:14px;padding:10px 14px;border:1px dashed var(--rule2);border-radius:4px}
+.railnote b{color:var(--ink)}
+details.primer>summary{cursor:pointer;font-family:var(--serif);font-size:20px;font-weight:600;padding:12px 0;list-style-position:outside}
+details.primer>summary .hint{font-family:var(--sans);font-weight:400;display:block}
 .legend{display:flex;gap:16px;font-size:12.5px;color:var(--soft);margin:12px 0 0;flex-wrap:wrap}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend i{display:inline-block;width:14px;height:10px;border-radius:2px}
@@ -152,8 +158,8 @@ select{font-family:var(--mono);font-size:13px;padding:6px 8px;border:1px solid v
 .btn{font-family:var(--mono);font-size:12px;padding:7px 14px;border-radius:4px;border:1px solid var(--accent);background:var(--card);color:var(--accent);cursor:pointer}
 .btn:hover{background:var(--accent);color:#fff}
 .row2{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-.result{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
-@media (max-width:600px){.result{grid-template-columns:1fr}}
+.result{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+@media (max-width:760px){.result{grid-template-columns:1fr}}
 .result>div{background:var(--panel);border-radius:4px;padding:10px 12px;font-size:14px}
 .result .k{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
 .limits{margin-top:20px;border-left:3px solid var(--neg);padding:2px 0 2px 16px;max-width:780px}
@@ -208,37 +214,39 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 <section id="bluf" style="padding-top:28px"><div class="wrap">
   <div class="sec-label">The answer, before anything else</div>
   <h2 id="bluf-h2">The checker against a range limit</h2>
-  <p class="lede" id="bluf-lede">Each bar is the share of faults I planted into real test logs that a check caught: dark for
-  this checker, grey for a range limit set from the stand's other runs, dashed for flagging at random with the same number
-  of false alarms. <span id="bluf-last"></span></p>
+  <p class="lede" id="bluf-lede">Each bar is the share of faults I planted into real test logs that a check caught: dark for this
+  checker, mid blue for the plain checks a stand would otherwise run (a flatline over 100 samples and a timestamp-gap
+  monitor), light grey for a range limit set from the stand's other runs, and dashed for flagging at random with the
+  checker's number of false alarms. <span id="bluf-last"></span></p>
   <div class="card" id="blufcard">
     <div class="bars" id="bars"></div>
     <div class="axis"><div></div><div class="ticks" id="ticks"></div></div>
     <div class="axtitle">Share of planted faults caught</div>
     <div class="legend">
       <span><i style="background:var(--accent)"></i>this checker</span>
-      <span><i style="background:var(--grey)"></i>range limit on every channel</span>
+      <span><i style="background:var(--plain)"></i>plain flatline and gap checks</span>
+      <span><i style="background:var(--grey)"></i>range limit, the floor</span>
       <span><i class="dash"></i>flagging sites at random, same false alarms</span>
     </div>
     <div class="ctl" style="margin-top:16px">
       <label for="sslider">Checker setting: thresholds at <b class="num" id="slabel">1.00</b> times the planned values</label>
       <input class="slider" type="range" id="sslider" min="0" max="100" value="50" aria-describedby="shint">
-      <p class="hint" id="shint">Drag it. Left makes every threshold stricter, so both checks flag more healthy channels; right
-      relaxes them. The range limit moves with it, as tight as it can go without flagging more healthy sites than the
-      checker. The middle is the setting fixed before the measured runs were checked.</p>
+      <p class="hint" id="shint">Drag it. Left makes every threshold stricter, so the checks flag more healthy channels; right
+      relaxes them. The plain checks scale with it; the range limit moves as tight as it can go without flagging more
+      healthy sites than the checker. The middle is the setting fixed before the measured runs were checked.</p>
     </div>
     <div class="stat" id="blufstat"></div>
+    <p class="railnote" id="railnote"></p>
   </div>
   <div class="qgrid" id="qgrid"></div>
   <p class="hint">Everything below is how this was measured and where it fails. The planted faults sit in copies of real
   runs; the real problems in the published logs are counted separately, in act two.</p>
 </div></section>
 
-<section id="primer"><div class="wrap">
-  <div class="sec-label">Before anything else</div>
-  <h2>Five things to know</h2>
-  <p class="lede">This page is about the log a test stand writes, so here is what that log is and what can go wrong in it.
-  Nothing after this assumes you have read one.</p>
+<section id="primer" style="padding-top:26px"><div class="wrap">
+  <details class="primer" id="primerbox">
+  <summary>What a test-stand log is, the three faults, and the terms used here
+    <span class="hint">Closed by default; open it if a test log is new to you.</span></summary>
   <div class="card">
     <ol class="prim">
       <li>A test stand's data acquisition system writes one <b>row</b> per sample: a timestamp and one number for each
@@ -248,9 +256,9 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
       <li>Three kinds of fault leave every value looking normal: <b>dropped samples</b> (rows that never arrived, or that
         the logger filled by repeating the last row), a <b>stuck sensor</b> (a channel that stops changing), and a
         <b>valve mismatch</b> (the valve's electrical output, position or downstream pressure does not follow its command).</li>
-      <li>A <b>range limit</b> flags a channel whose value leaves the range it showed in the stand's other runs. Most
-        stands have one, so it is the comparison on this page; the checker contains the same range limit, so the
-        difference between them is what the three other checks add.</li>
+      <li>The <b>plain checks</b> are the simplest form a stand runs: a flatline of more than 100 identical samples and an
+        interval of more than one and a half times the median. A <b>range limit</b> flags a value outside what the stand's
+        other runs showed; the checker contains the same range limit.</li>
       <li>Every result is given per <b>site</b>: one record (the channels that share one clock), one channel, or one valve,
         in one run.</li>
     </ol>
@@ -283,36 +291,26 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   <div class="card">
     <div class="card-title">Terms, in the order they appear</div>
     <div class="gloss">
-      <div><b>planted fault</b> A fault I wrote into a copy of a real run, at a known site, time and size, so the count of what a check catches is exact.</div>
+      <div><b>planted fault</b> A fault I wrote into a copy of a real run, at a known site, time and size, so the count of what a check catches is exact. It counts as caught only if it changes the verdict.</div>
       <div><b>false alarm</b> A flag on a site that has nothing wrong with it.</div>
-      <div><b>hotfire, cold flow</b> A test that burns propellant, and one that only flows fluid through the plumbing.</div>
       <div><b>record</b> The rows a logger writes on one clock. A run can have several, at different rates.</div>
       <div><b>live, spare</b> A live channel is one the documentation names, so it must carry a signal. A spare one is reported for information only.</div>
-      <div><b>flat</b> Exactly the same value on consecutive samples. Real sensors carry noise, so a long flat stretch means something stopped.</div>
-      <div><b>driver output</b> The voltage a valve driver puts on a solenoid when commanded on. Here, on means at least three quarters of battery voltage, off at most half.</div>
-      <div><b>setpoint</b> The position a motorised valve is told to go to, logged beside the position it reports.</div>
+      <div><b>flat</b> Exactly the same value on consecutive samples. Real sensors carry noise, so a long flat stretch usually means something stopped; on a quiet low-resolution channel it may not.</div>
+      <div><b>rail check</b> Added after the measured runs: a channel sitting at its own highest or lowest value, the signature of a saturated sensor or a converter code.</div>
       <div><b>jitter</b> How much the interval between rows normally varies. A gap only counts once it is longer than the record's own jitter allows.</div>
       <div><b>operating point</b> The conditions a run is held at, such as a supply pressure. A new operating point is a run at conditions no other run reached.</div>
-      <div><b>saturated</b> A sensor or amplifier that has reached the top of its range and reads flat there while the real value keeps rising.</div>
+      <div><b>driver output</b> The voltage a valve driver puts on a solenoid when commanded on. Here, on means at least three quarters of battery voltage, off at most half.</div>
       <div><b>fit and measured runs</b> Thresholds were set on the fit runs only; the measured runs were checked once with them frozen. Act two and the coda say which is which.</div>
     </div>
   </div>
+  </details>
 </div></section>
 
 <section id="words"><div class="wrap">
   <div class="sec-label">Their words</div>
-  <h2>What the advertisement asks for</h2>
-  <p class="lede">The job this page does is in the advertisement for a Junior Ground Systems Engineer, Instrumentation and
-  Control, in Auckland:</p>
+  <h2>The duty this page does</h2>
   <div class="quote">Analyse post-flight and post-test data to understand system performance and drive improvements
     <small>Rocket Lab, Junior Ground Systems Engineer, Instrumentation &amp; Control, Auckland, posted 15 October 2026</small></div>
-  <div class="quote">Advise on instrumentation best practices and drive continuous product and process improvement
-    <small>Same advertisement</small></div>
-  <div class="quote">Apply a risk-based approach to your work, always with a fallback solution in place
-    <small>Same advertisement</small></div>
-  <p class="small">The first line is the job: before post-test data says anything about a system, someone has to know the
-  data itself is sound. The second is why the report names every dead and frozen channel instead of averaging over it. The
-  third is why every limit of this checker is stated beside its results.</p>
   <p class="small">The data comes from three projects that publish raw test-stand logs under an open licence: a student
   liquid-engine controller on GitHub, a cryogenic feed-line rig at the German Aerospace Center (DLR), and an igniter bench
   at TU Delft. Several student teams publish richer logs without a licence; those are not used. Nothing on this page comes
@@ -343,9 +341,9 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   <h2 id="act2-h2">Everything it flagged in the public runs</h2>
   <p class="why"><b>Why this matters</b>A checker that only finds faults I planted could still be useless on real logs,
   where problems are rarer and stranger.</p>
-  <p class="lede">I ran both checks on every run and labelled each flag myself after looking at the raw data: a real problem
-  in the published log, or a false alarm. Real problems I found that neither check flagged are listed as missed. The same
-  finding in many runs of one day is one row.</p>
+  <p class="lede">I ran every check on every run and labelled each flag myself after looking at the raw data: a real problem
+  in the published log, or a false alarm. Real problems the planned checker did not flag are listed as missed, with what the
+  other checks made of them. The same finding in many runs of one day is one row.</p>
   <div class="chips" id="fchips" role="group" aria-label="Filter the findings"></div>
   <p class="howto"><b>Click</b> a row to read why it got its label.</p>
   <div class="card" id="fcard">
@@ -362,7 +360,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   <p class="why"><b>Why this matters</b>A planted fault has a known place, time and size, so whether a check caught it is a
   fact rather than a judgement.</p>
   <p class="lede">This is the 2019 hotfire log from the engine-controller project, the cleaner of its two logs. Pick a
-  channel or valve, a kind of fault and its size. The checker runs again in your browser on the changed log, and the two
+  channel or valve, a kind of fault and its size. The checks run again in your browser on the changed log, and the three
   verdicts below update.</p>
   <div class="card" id="plantcard">
     <div class="row2">
@@ -388,21 +386,21 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   caught at the planned setting; across is the size of the fault. A dot on the floor means none of the 30 was caught.</p>
   <div class="card" id="sizecard"><div id="sizeviz"></div></div>
   <div class="verdict sting" id="v3"></div>
-  <p class="handover">Catching a fault is half the job. The other half is a document someone can sign before the data is
+  <p class="handover">Catching a fault is half the job. The other half is a table an engineer can review before the data is
   used, which is the next act.</p>
 </div></section>
 
 <section id="act4"><div class="wrap">
   <div class="sec-label">Act four</div>
-  <h2>The report a test engineer signs</h2>
-  <p class="why"><b>Why this matters</b>The output of a data check is not a chart; it is a pass or fail per channel that
-  someone signs before the data is used to qualify anything.</p>
-  <p class="lede">Pick any run. The report lists every record, channel and valve the channel map names, with the evidence
-  for each verdict in plain words.</p>
+  <h2>A pass or fail table an engineer reviews</h2>
+  <p class="why"><b>Why this matters</b>The output of a data check is not a chart; it is a pass or fail per channel that an
+  engineer reviews, with the calibration records, before the data is used.</p>
+  <p class="lede">Pick any run. The table lists every record, channel and valve the channel map names, with the evidence for
+  each verdict in plain words. It covers the integrity of the data only.</p>
   <div class="row2">
     <label class="small" for="rsel">Run</label>
     <select id="rsel"></select>
-    <button class="btn" id="printbtn">Print this report</button>
+    <button class="btn" id="printbtn">Print this table</button>
   </div>
   <div class="card reportbox" id="report"></div>
   <p class="handover">The coda says how all of this was built and what it cannot do.</p>
@@ -443,10 +441,18 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
     does this: the transducer keeps reading the trapped pressure plus its electrical noise. Catching it needs a second
     sensor at the same point to compare against, as the DLR rig has at each station, or a check of the pressure against
     the valve sequence. This checker has neither.</p>
-    <p><b>It missed the saturated dynamic sensors in the DLR tests.</b> They sit flat at their top for <span id="lim-clip"></span>, and the
-    stuck check waits <span id="lim-fast"></span> on fast channels. A check for a channel flat at its own maximum would catch them. I saw a
-    research note about these flat tops before fixing the thresholds and chose not to tune for them, so the miss is reported as
-    measured.</p>
+    <p><b>The planned checker missed the saturated dynamic sensors in the DLR tests.</b> They sit flat at their top for <span id="lim-clip"></span>, and the
+    stuck check waits <span id="lim-fast"></span> on fast channels. I saw a research note about these flat tops before fixing the thresholds and
+    did not tune for them. A rail check for a channel flat at its own highest or lowest value, added after an outside review, catches
+    all of them and the converter codes; it is reported apart from the planned numbers.</p>
+    <p><b>The freeze limits were fitted on short student runs.</b> <span id="lim-fit"></span> On a stand that holds a steady state, such as a
+    chilled-down line or a pressurised hold, a low-resolution channel can keep one reading far longer and these limits would raise
+    false alarms; the two thermocouples the plain flatline wrongly flags show the effect. A next version should scale each limit by the
+    channel's resolution and noise floor, not by a stopwatch.</p>
+    <p><b>Calibration is out of scope.</b> Pre-test zero against a known ambient reading (a vented tank should read zero gauge),
+    post-test zero drift, and calibration traceability are checks I have not built; a reviewer would need them beside this table.</p>
+    <p><b>Gaps are inferred from timestamps.</b> Where a logger writes a sample counter or an overflow flag, that is the better
+    evidence, and the check should use it; none of these logs carries one.</p>
     <p><b>Valve timing on the Delft bench is only as good as its valve log.</b> The valve states carry no timestamps and no
     documented rate, and their record length disagrees with the thermocouple record by up to <span id="lim-drift"></span> percent in one run. A valve
     that answers half a second late cannot be told apart from that drift.</p>
@@ -459,10 +465,12 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   </div>
 
   <h3>Changes made after the measured runs were checked</h3>
-  <p class="small">Three, all listed with reasons in
-  <a href="https://github.com/bolgacg/stand-check/blob/main/PLAN.md">PLAN.md</a>: planting faults only where neither check
-  already flags; starting a planted valve fault where the valve check starts looking; and counting the range limit on
-  channels only, so one out-of-range channel is not counted three times. None changed a threshold.</p>
+  <p class="small">Six, all listed with reasons in
+  <a href="https://github.com/bolgacg/stand-check/blob/main/PLAN.md">PLAN.md</a>: planting faults only where no check
+  already flags; starting a planted valve fault where the valve check starts looking; counting the range limit on channels
+  only; and, after an outside review, adding the rail check, adding the plain checks as the named comparison, and counting a
+  planted fault as caught only when it changes the verdict. None changed a planned threshold, and the planned checker's
+  numbers are the same as before the review.</p>
 
   <h3>Sources and licences</h3>
   <ul class="small" id="sources" style="padding-left:18px;line-height:1.8"></ul>

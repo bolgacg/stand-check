@@ -73,22 +73,22 @@
   "sterenberg-2018-03-17|channel:thermocouple[0] (degC)": {
    "label": "real",
    "category": "dead",
-   "reason": "Reads exactly 1,023 C on every row of the hotfire. That is a fixed converter code, not a temperature; the thermocouple input is open."
+   "reason": "Reads exactly 1,023 C on every row of the hotfire. That is a fixed converter code, not a temperature, consistent with an open input; front ends that carry a fault bit would say so directly."
   },
   "sterenberg-2018-03-17|channel:thermocouple[1] (degC)": {
    "label": "real",
    "category": "dead",
-   "reason": "Reads exactly 2,047 C on every row of the hotfire. That is a fixed converter code, not a temperature; the thermocouple input is open."
+   "reason": "Reads exactly 2,047 C on every row of the hotfire. That is a fixed converter code, not a temperature, consistent with an open input; front ends that carry a fault bit would say so directly."
   },
   "sterenberg-2018-03-17|channel:thermocouple[2] (degC)": {
    "label": "real",
    "category": "dead",
-   "reason": "Reads exactly 2,047 C on every row of the hotfire. That is a fixed converter code, not a temperature; the thermocouple input is open."
+   "reason": "Reads exactly 2,047 C on every row of the hotfire. That is a fixed converter code, not a temperature, consistent with an open input; front ends that carry a fault bit would say so directly."
   },
   "sterenberg-2018-03-17|channel:thermocouple[3] (degC)": {
    "label": "real",
    "category": "dead",
-   "reason": "Reads exactly 2,047 C on every row of the hotfire. That is a fixed converter code, not a temperature; the thermocouple input is open."
+   "reason": "Reads exactly 2,047 C on every row of the hotfire. That is a fixed converter code, not a temperature, consistent with an open input; front ends that carry a fault bit would say so directly."
   },
   "sterenberg-2018-03-17|valve:driver output 8": {
    "label": "false",
@@ -269,6 +269,56 @@
    "label": "real",
    "category": "dead",
    "reason": "TC0, which the dataset README names as the ambient thermocouple, reads exactly 0.0 C on every sample of every 29 May run. In the same runs an input the README does not mention, TC3, reads between 7 and 20 C."
+  },
+  "sterenberg-2019|channel:chamber_temp (degC)": {
+   "label": "false",
+   "category": "simple",
+   "reason": "The thermocouple logs whole degrees, so at rest it holds one reading for more than 100 rows while working normally. A fixed flatline count cannot tell a quiet low-resolution channel from a frozen one."
+  },
+  "sterenberg-2019|channel:thermocouple[3] (degC)": {
+   "label": "false",
+   "category": "simple",
+   "reason": "The thermocouple logs whole degrees, so at rest it holds one reading for more than 100 rows while working normally. A fixed flatline count cannot tell a quiet low-resolution channel from a frozen one."
+  },
+  "dlr-20200803_8|stream:flowmeter": {
+   "label": "false",
+   "category": "simple",
+   "reason": "The Coriolis flowmeter reports irregularly, every 45 to 190 ms in the fit tests, so an interval half again its median is normal for it. The checker allows for that; a fixed rule of one and a half times the median does not."
+  },
+  "dlr-20200803_11|stream:flowmeter": {
+   "label": "false",
+   "category": "simple",
+   "reason": "The Coriolis flowmeter reports irregularly, every 45 to 190 ms in the fit tests, so an interval half again its median is normal for it. The checker allows for that; a fixed rule of one and a half times the median does not."
+  },
+  "dlr-20200803_15|stream:flowmeter": {
+   "label": "false",
+   "category": "simple",
+   "reason": "The Coriolis flowmeter reports irregularly, every 45 to 190 ms in the fit tests, so an interval half again its median is normal for it. The checker allows for that; a fixed rule of one and a half times the median does not."
+  },
+  "dlr-20200805_10|stream:flowmeter": {
+   "label": "false",
+   "category": "simple",
+   "reason": "The Coriolis flowmeter reports irregularly, every 45 to 190 ms in the fit tests, so an interval half again its median is normal for it. The checker allows for that; a fixed rule of one and a half times the median does not."
+  },
+  "dlr-20200806_5|stream:flowmeter": {
+   "label": "false",
+   "category": "simple",
+   "reason": "The Coriolis flowmeter reports irregularly, every 45 to 190 ms in the fit tests, so an interval half again its median is normal for it. The checker allows for that; a fixed rule of one and a half times the median does not."
+  },
+  "dlr-20200806_15|stream:flowmeter": {
+   "label": "false",
+   "category": "simple",
+   "reason": "The Coriolis flowmeter reports irregularly, every 45 to 190 ms in the fit tests, so an interval half again its median is normal for it. The checker allows for that; a fixed rule of one and a half times the median does not."
+  },
+  "dlr-20200806_16|stream:flowmeter": {
+   "label": "false",
+   "category": "simple",
+   "reason": "The Coriolis flowmeter reports irregularly, every 45 to 190 ms in the fit tests, so an interval half again its median is normal for it. The checker allows for that; a fixed rule of one and a half times the median does not."
+  },
+  "dlr-20200805_9|stream:flowmeter": {
+   "label": "false",
+   "category": "simple",
+   "reason": "The Coriolis flowmeter reports irregularly, every 45 to 190 ms in the fit tests, so an interval half again its median is normal for it. The checker allows for that; a fixed rule of one and a half times the median does not."
   }
  },
  "missed": [

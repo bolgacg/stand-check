@@ -30,40 +30,51 @@
 
   /* ---------------- header ---------------- */
   function header() {
+    var pk = H.perKind;
     $('#dek').innerHTML = 'Before anyone analyses a test, someone has to trust its data: that no rows went missing, no sensor froze ' +
-      'and each valve followed its command. I wrote a checker that reads a raw log and a channel map and prints a pass or fail ' +
-      'report for each run, and ran it on <b>' + D.totals.runs + ' public test-stand runs</b> from three projects. It finds faults a range limit cannot see, ' +
-      'and it is blind to a sensor that freezes but keeps its noise.';
-    var nk = H.perKind.flat_noisy;
+      'and each valve followed its command. I wrote a checker that reads a raw log and a channel map and prints a pass or fail table ' +
+      'for each run, and ran it on <b>' + D.totals.runs + ' public test-stand runs</b> from three projects. It does not see a sensor that ' +
+      'freezes but keeps its noise, or a freeze or valve delay shorter than its limits.';
     var q = [
-      ['What does it catch that a range limit cannot?', pct(H.caught, H.planted) + ' percent of the faults I planted into real runs; a range limit set from the stand\'s other runs catches ' + words(H.caughtRange) + '.'],
-      ['How often does it raise a false alarm?', 'On ' + H.falseChecker + ' of ' + H.healthy + ' healthy sites in the measured runs, as often as the range limit.'],
-      ['What did it find in the real public logs?', H.realChecker + ' of the ' + H.realTotal + ' problems I found in them by hand; the range limit flags ' + H.realRange + '.'],
-      ['Where does it lose?', 'It catches ' + nk.checker + ' of ' + nk.n + ' sensors frozen with their noise kept, and it misses saturated pressure sensors in ' + D.extra.clipRuns + ' of the DLR tests.']
+      ['What does it catch that plain checks miss?', pct(H.caught, H.planted) + ' percent of the faults I planted into real runs, against ' +
+        pct(H.caughtSimple, H.planted) + ' percent for a plain flatline and timestamp-gap check.'],
+      ['How often does it raise a false alarm?', 'On ' + H.falseChecker + ' of ' + H.healthy + ' healthy sites in the measured runs' +
+        (H.falseSimple === H.falseChecker ? ', the same as the plain checks.' : ', against ' + H.falseSimple + ' for the plain checks.')],
+      ['What did it find in the real public logs?', H.realChecker + ' of the ' + H.realTotal + ' problems I found by hand; the plain checks find ' +
+        H.realSimple + ', because most real problems are channels that never move.'],
+      ['Where does it lose?', 'A plain flatline catches more frozen sensors than it does (' + pk.flat.simple + ' against ' + pk.flat.checker + ' of ' +
+        pk.flat.n + '), and it missed ' + H.realMissedChecker + ' real problems that a rail check, added afterwards, catches.']
     ];
     $('#qgrid').innerHTML = q.map(function (x, i) { return '<div' + (i === 3 ? ' class="loss"' : '') + '><b>' + x[0] + '</b>' + x[1] + '</div>'; }).join('');
-    $('#bluf-last').textContent = H.caughtRange === 0 ? 'A range limit catches none of these faults, because a frozen sensor, a missing row or a late valve never leaves the normal range.'
-      : 'A range limit catches few of these faults, because a frozen sensor, a missing row or a late valve rarely leaves the normal range.';
+    $('#bluf-last').textContent = H.caughtRange === 0 ? 'The range limit is drawn as a floor: these faults never leave the normal range, so by design it cannot catch them.'
+      : 'The range limit is drawn as a floor: these faults rarely leave the normal range.';
     $('#nper').textContent = D.nPer;
-    $('#bluf-h2').textContent = 'The checker catches ' + pct(H.caught, H.planted) + ' percent of planted faults; a range limit catches ' + words(H.caughtRange);
+    $('#bluf-h2').textContent = 'The checker catches ' + pct(H.caught, H.planted) + ' percent of planted faults; plain flatline and gap checks catch ' + pct(H.caughtSimple, H.planted) + ' percent';
     $('#buildinfo').textContent = 'built ' + D.built + (D.code ? ' from code ' + D.code : '');
   }
 
   /* ---------------- the answer chart ---------------- */
+  // planted rows: [kind, size, stand, checker, range, plain, rail, then the same four as published]
   var ROWS = [{ k: null, label: 'All planted faults' }, { k: 'rows_missing' }, { k: 'rows_repeated' }, { k: 'flat' }, { k: 'valve_late' }, { k: 'flat_noisy', loss: true }];
   var mDesc = D.roc.healthy.map(function (h) { return h[2]; }).sort(function (a, b) { return b - a; });
   function sOf(pos) { return Math.pow(20, (pos - 50) / 50); }
   function atSetting(s) {
-    var hs = D.roc.healthy, k = 0;
-    hs.forEach(function (h) { if (h[1] > s) k++; });
+    var hs = D.roc.healthy, k = 0, ks = 0;
+    hs.forEach(function (h) { if (h[1] > s) k++; if (h[3] > s) ks++; });
     var mThr = k < mDesc.length ? mDesc[k] : -Infinity, kr = 0;
     hs.forEach(function (h) { if (h[2] > mThr) kr++; });
     var rows = ROWS.map(function (r) {
-      var ki = r.k === null ? -1 : D.roc.kinds.indexOf(r.k), n = 0, c = 0, g = 0;
-      D.roc.planted.forEach(function (p) { if (ki >= 0 && p[0] !== ki) return; n++; if (p[3] > s) c++; if (p[4] > mThr) g++; });
-      return { r: r, n: n, c: c, g: g, ki: ki };
+      var ki = r.k === null ? -1 : D.roc.kinds.indexOf(r.k), n = 0, c = 0, p2 = 0, g = 0;
+      D.roc.planted.forEach(function (p) {
+        if (ki >= 0 && p[0] !== ki) return;
+        n++;
+        if (p[3] > s && p[7] <= s) c++;
+        if (p[5] > s && p[9] <= s) p2++;
+        if (p[4] > mThr && p[8] <= mThr) g++;
+      });
+      return { r: r, n: n, c: c, p: p2, g: g, ki: ki };
     });
-    return { k: k, kr: kr, n: hs.length, rows: rows, mThr: mThr };
+    return { k: k, ks: ks, kr: kr, n: hs.length, rows: rows, mThr: mThr };
   }
   function bluf() {
     var bars = $('#bars');
@@ -71,33 +82,11 @@
       var ki = r.k === null ? -1 : D.roc.kinds.indexOf(r.k);
       var label = r.k === null ? r.label : D.roc.kindNames[ki];
       return '<div class="brow' + (r.k === null ? ' all' : '') + (r.loss ? ' loss' : '') + '" data-i="' + i + '"><div class="bl">' + label +
-        '<small id="bn' + i + '"></small></div><div class="btrack"><div class="floor"></div><div class="bar c"></div><div class="bar r"></div>' +
-        '<div class="bval c"></div><div class="bval r"></div></div></div>';
+        '<small id="bn' + i + '"></small></div><div class="btrack"><div class="floor"></div><div class="bar c"></div><div class="bar s"></div><div class="bar r"></div>' +
+        '<div class="bval c"></div><div class="bval s"></div><div class="bval r"></div></div></div>';
     }).join('');
     $('#ticks').innerHTML = [0, 25, 50, 75, 100].map(function (v) { return '<span style="left:' + v + '%">' + v + '%</span>'; }).join('');
     var sl = $('#sslider');
-    function draw() {
-      var s = sOf(+sl.value), res = atSetting(s);
-      $('#slabel').textContent = s.toFixed(2);
-      res.rows.forEach(function (row, i) {
-        var el = bars.querySelector('.brow[data-i="' + i + '"]'), tr = $('.btrack', el);
-        var fc = row.n ? row.c / row.n : 0, fg = row.n ? row.g / row.n : 0;
-        $('.bar.c', el).style.width = (100 * fc) + '%';
-        $('.bar.r', el).style.width = (100 * fg) + '%';
-        var fl = res.k / res.n;
-        placeVal($('.bval.c', el), fc, sh(fc) + '  ' + row.c + ' of ' + row.n, tr, '#fff', fl);
-        placeVal($('.bval.r', el), fg, sh(fg) + '  ' + row.g + ' of ' + row.n, tr, '#1a1d21', fl);
-        $('#bn' + i).textContent = row.n + ' planted';
-      });
-      positionFloor(res.k / res.n);
-      $('#blufstat').innerHTML =
-        '<div><div class="k">Planted faults caught</div><div class="n">' + res.rows[0].c + ' / ' + res.rows[0].g + '</div><div class="s">checker / range limit, of ' + res.rows[0].n + '</div></div>' +
-        '<div><div class="k">Healthy sites flagged</div><div class="n">' + res.k + ' / ' + res.kr + '</div><div class="s">checker / range limit, of ' + res.n + ' in the measured runs</div></div>' +
-        '<div><div class="k">Random flagging catches</div><div class="n">' + pct(res.k, res.n, 1) + '%</div><div class="s">flagging as many sites as the checker, blindly</div></div>';
-    }
-    function positionFloor(f) {
-      bars.querySelectorAll('.floor').forEach(function (fl) { fl.style.left = (100 * f) + '%'; });
-    }
     function sh(f) { return f > 0 && f < 0.01 ? (100 * f).toFixed(1) + '%' : Math.round(100 * f) + '%'; }
     function placeVal(v, f, str, tr, inside, floor) {
       v.textContent = str;
@@ -105,9 +94,32 @@
       if (f * w + tw + 6 > w) { v.style.left = Math.max(4, f * w - tw - 6) + 'px'; v.style.color = inside; }
       else { v.style.left = (Math.max(f, floor + 0.004) * w + 6) + 'px'; v.style.color = ''; }
     }
+    function draw() {
+      var s = sOf(+sl.value), res = atSetting(s), fl = res.k / res.n;
+      $('#slabel').textContent = s.toFixed(2);
+      res.rows.forEach(function (row, i) {
+        var el = bars.querySelector('.brow[data-i="' + i + '"]'), tr = $('.btrack', el);
+        [['c', row.c, '#fff'], ['s', row.p, '#fff'], ['r', row.g, '#1a1d21']].forEach(function (b) {
+          var f = row.n ? b[1] / row.n : 0;
+          $('.bar.' + b[0], el).style.width = (100 * f) + '%';
+          placeVal($('.bval.' + b[0], el), f, sh(f) + '  ' + b[1] + ' of ' + row.n, tr, b[2], fl);
+        });
+        $('#bn' + i).textContent = row.n + ' planted';
+      });
+      bars.querySelectorAll('.floor').forEach(function (e) { e.style.left = (100 * fl) + '%'; });
+      var a = res.rows[0];
+      $('#blufstat').innerHTML =
+        '<div><div class="k">Planted faults caught</div><div class="n">' + a.c + ' / ' + a.p + ' / ' + a.g + '</div><div class="s">checker / plain checks / range limit, of ' + a.n + '</div></div>' +
+        '<div><div class="k">Healthy sites flagged</div><div class="n">' + res.k + ' / ' + res.ks + ' / ' + res.kr + '</div><div class="s">the same three, of ' + res.n + ' in the measured runs</div></div>' +
+        '<div><div class="k">Random flagging catches</div><div class="n">' + pct(res.k, res.n, 1) + '%</div><div class="s">flagging as many sites as the checker, blindly</div></div>';
+    }
     sl.addEventListener('input', draw);
     window.addEventListener('resize', draw);
     draw();
+    $('#railnote').innerHTML = '<b>Added after the measured runs, and kept apart from the numbers above:</b> a rail check that flags a channel sitting at its own ' +
+      'highest or lowest value. It catches the saturated DLR sensors and the converter codes the planned checker missed. With it, the checker finds ' +
+      H.realWithRail + ' of the ' + H.realTotal + ' real problems and catches ' + H.caughtWithRail + ' of the ' + H.planted + ' planted faults, with ' +
+      H.falseWithRail + ' false alarms on the ' + H.healthy + ' healthy sites.';
   }
 
   /* ---------------- the stands ---------------- */
@@ -197,38 +209,53 @@
 
   /* ---------------- act two ---------------- */
   var fFilter = 'real', fOpen = -1;
+  var CAT = { timing: 'record-timing fault', valve: 'valve fault', dead: 'dead channel', frozen: 'frozen sensor', clipped: 'saturated sensor' };
+  function catList(rows) {
+    var c = {}; rows.forEach(function (f) { c[f.category] = (c[f.category] || 0) + f.count; });
+    var parts = Object.keys(c).sort(function (a, b) { return c[b] - c[a]; }).map(function (k) { return c[k] + ' ' + (CAT[k] || k) + (c[k] === 1 ? '' : (CAT[k] || k).slice(-1) === 'y' ? '' : 's'); });
+    return parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts[0] || 'none';
+  }
   function findings() {
     var F = D.findings, cnt = function (l) { return F.filter(function (f) { return l === 'all' || f.label === l; }).length; };
-    var opts = [['real', 'Real problems'], ['missed', 'Missed by both'], ['false', 'False alarms'], ['all', 'Everything']];
+    var opts = [['real', 'Real problems'], ['missed', 'Missed by the checker'], ['false', 'False alarms'], ['all', 'Everything']];
     $('#fchips').innerHTML = opts.map(function (o) { return '<button class="chip" aria-pressed="' + (o[0] === fFilter) + '" data-f="' + o[0] + '">' + o[1] + ' (' + cnt(o[0]) + ')</button>'; }).join('');
     $('#fchips').onclick = function (e) { var b = e.target.closest('.chip'); if (!b) return; fFilter = b.dataset.f; fOpen = -1; findings(); };
     var t = $('#ftable');
-    $('thead', t).innerHTML = '<tr><th>Finding</th><th>Checker</th><th>Range limit</th><th>My label</th></tr>';
+    $('thead', t).innerHTML = '<tr><th>Finding</th><th>Checker</th><th>Plain checks</th><th>Range limit</th><th>Rail check, added later</th><th>My label</th></tr>';
     var rows = F.map(function (f, i) { return [f, i]; }).filter(function (x) { return fFilter === 'all' || x[0].label === fFilter; });
     var lab = { real: 'real problem', missed: 'missed', 'false': 'false alarm' };
+    var yn = function (v) { return v ? '<span class="yes">flagged</span>' : '<span class="no">passed</span>'; };
+    var dateOf = function (l) { return l.slice(l.lastIndexOf(', ') + 2); };
     $('tbody', t).innerHTML = rows.map(function (x) {
       var f = x[0], i = x[1];
-      var dateOf = function (l) { return l.slice(l.lastIndexOf(', ') + 2); };
       var sameDay = f.runs.every(function (l) { return dateOf(l) === dateOf(f.runs[0]); });
       var where = f.count > 1 ? f.count + ' runs' + (sameDay ? ' of ' + esc(dateOf(f.runs[0])) : '') : esc(f.runs[0]);
       var tr = '<tr class="frow' + (i === fOpen ? ' open' : '') + '" data-i="' + i + '"><td><b>' + esc(f.siteLabel) + '</b><div class="small">' + where +
-        ' &middot; ' + esc(D.stands[f.stand].title) + '</div></td><td data-l="Checker">' + (f.checker ? '<span class="yes">flagged</span>' : '<span class="no">passed</span>') +
-        '</td><td data-l="Range limit">' + (f.range ? '<span class="yes">flagged</span>' : '<span class="no">passed</span>') + '</td><td><span class="pill ' + f.label + '">' + lab[f.label] + '</span></td></tr>';
+        ' &middot; ' + esc(D.stands[f.stand].title) + '</div></td><td data-l="Checker">' + yn(f.checker) + '</td><td data-l="Plain checks">' + yn(f.simple) +
+        '</td><td data-l="Range limit">' + yn(f.range) + '</td><td data-l="Rail check">' + (f.site.indexOf('channel:') === 0 ? yn(f.rail) : '<span class="no">n/a</span>') +
+        '</td><td><span class="pill ' + f.label + '">' + lab[f.label] + '</span></td></tr>';
       if (i === fOpen) {
-        tr += '<tr class="reason"><td colspan="4">' + esc(f.reason) + (f.checkerText ? '<div class="note">Checker: ' + esc(f.checkerText) + '.</div>' : '') +
+        tr += '<tr class="reason"><td colspan="6">' + esc(f.reason) + (f.checkerText ? '<div class="note">Checker: ' + esc(f.checkerText) + '.</div>' : '') +
+          (f.railText ? '<div class="note">Rail check: ' + esc(f.railText) + '.</div>' : '') +
           (f.rangeText ? '<div class="note">Range limit: ' + esc(f.rangeText) + '.</div>' : '') + '</td></tr>';
       }
       return tr;
     }).join('');
     $('tbody', t).onclick = function (e) { var r = e.target.closest('tr.frow'); if (!r) return; var i = +r.dataset.i; fOpen = fOpen === i ? -1 : i; findings(); };
-    var fc = F.filter(function (f) { return f.label === 'false' && f.checker; }).reduce(function (a, f) { return a + f.count; }, 0);
-    var byCat = function (cat) { return F.filter(function (f) { return f.label === 'false' && f.checker && f.category === cat; }).reduce(function (a, f) { return a + f.count; }, 0); };
-    $('#act2-h2').textContent = 'On ' + D.totals.runs + ' public runs it flags ' + H.realChecker + ' of ' + H.realTotal + ' real problems; a range limit flags ' + H.realRange;
-    $('#v2').innerHTML = '<p><span class="opener">On the real logs the checker flags ' + H.realChecker + ' of the ' + H.realTotal + ' problems I found; the range limit flags ' + H.realRange + '.</span> ' +
-      'The range limit finds the dead thermocouples, because their readings fall outside what other runs showed. It cannot see a sensor frozen at a normal value or a dead input with no other run to compare against, and it does not read timestamps at all.</p>' +
-      '<p>The checker raised ' + fc + ' false alarms. ' + byCat('range') + ' come from the range rule it shares with the range limit, on new operating points; ' +
-      byCat('timing') + ' blame dropped rows for what is really two sensors saturating while a third is frozen; and ' + byCat('valve') +
-      ' is an igniter output that floats after firing. Both checks missed ' + H.realMissedBoth + ' real problems, listed under "Missed by both".</p>';
+    var real = F.filter(function (f) { return f.label === 'real' || f.label === 'missed'; });
+    var onlyC = real.filter(function (f) { return f.checker && !f.simple; }), onlyS = real.filter(function (f) { return f.simple && !f.checker; });
+    var sum = function (a) { return a.reduce(function (x, f) { return x + f.count; }, 0); };
+    var fc = F.filter(function (f) { return f.label === 'false' && f.checker; });
+    var byCat = function (cat) { return sum(fc.filter(function (f) { return f.category === cat; })); };
+    $('#act2-h2').textContent = 'On ' + D.totals.runs + ' public runs it flags ' + H.realChecker + ' of ' + H.realTotal + ' real problems; plain checks flag ' + H.realSimple;
+    $('#v2').innerHTML = '<p><span class="opener">On the real logs the checker flags ' + H.realChecker + ' of the ' + H.realTotal + ' problems I found; plain flatline and gap checks flag ' +
+      H.realSimple + ' and the range limit ' + H.realRange + '.</span> Most real problems are channels that never move, which any flatline sees. The checker alone finds ' +
+      sum(onlyC) + ' (' + catList(onlyC) + '); the plain checks alone find ' + sum(onlyS) + ' (' + catList(onlyS) + '), which sit flat for more than 100 samples but less than the checker\'s ' +
+      SC.fmtDur(D.thresholds.flat.p_fast) + ' limit.</p>' +
+      '<p>False alarms on the real logs: the checker ' + H.falseAllChecker + ', the plain checks ' + H.falseAllSimple + ', the range limit ' + H.falseAllRange + '. Of the checker\'s, ' +
+      byCat('range') + ' come from the range rule it shares with the range limit, on new operating points; ' + byCat('timing') +
+      ' blame dropped rows for what is really two sensors saturating while a third is frozen; and ' + byCat('valve') + ' is an igniter output that floats after firing.' +
+      ' The rail check added afterwards raised ' + words(H.falseAllRail) + ' and, with the checker, finds ' + (H.realWithRail === H.realTotal ? 'all ' + H.realTotal : H.realWithRail + ' of the ' + H.realTotal) + '.</p>';
   }
 
   /* ---------------- act three ---------------- */
@@ -271,6 +298,13 @@
     var fail, txt, pub;
     if (which === 'checker') {
       fail = s.score > 1; txt = SC.verdict(run, key, s); pub = sPub.score > 1;
+      if (s.rail > 1 && !fail) txt += '; the rail check added later fires: ' + s.railText;
+    } else if (which === 'plain') {
+      var kd = key.split(':')[0];
+      if (s.simple === -1) return '<div><div class="k">' + title + '</div><span class="pill">does not apply</span> The plain checks have no valve comparator.</div>';
+      fail = s.simple > 1; pub = sPub.simple > 1;
+      txt = kd === 'stream' ? (fail ? 'an interval longer than one and a half times the median' : 'no interval longer than one and a half times the median')
+        : (fail ? 'the same value for more than ' + SC.SIMPLE_FLAT + ' samples in a row' : 'never the same value for more than ' + SC.SIMPLE_FLAT + ' samples');
     } else {
       var kind = key.split(':')[0];
       if (s.m === -1) { return '<div><div class="k">' + title + '</div><span class="pill">does not apply</span> ' +
@@ -302,30 +336,31 @@
     lineChart($('#plantviz'), { title: '', unit: HF.channels[chName].unit + '  ' + HF.channels[chName].label, series: [
       { name: 'published', t: a.t, y: a.y, role: 'orig' }, { name: 'with the fault', t: b.t, y: b.y, role: 'main' }],
       bands: [{ t0: res.t0, t1: Math.max(res.t1, res.t0 + 0.004), kind: 'plant' }] }, { x0: w0, x1: w1, h: 190 });
-    $('#presult').innerHTML = verdictBox('Checker, with your fault', sNew, sPub, 'checker', key, res.run) + verdictBox('Range limit, with your fault', sNew, sPub, 'range', key, res.run);
+    $('#presult').innerHTML = verdictBox('Checker, with your fault', sNew, sPub, 'checker', key, res.run) + verdictBox('Plain checks, with your fault', sNew, sPub, 'plain', key, res.run) +
+      verdictBox('Range limit, with your fault', sNew, sPub, 'range', key, res.run);
   }
 
   function sizeCharts() {
     var holder = $('#sizeviz');
     var html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px 22px">';
     D.roc.kinds.forEach(function (k, ki) { html += '<div><h4 style="font-size:13px">' + esc(D.roc.kindNames[ki]) + '</h4><div class="viz" id="sz' + ki + '"></div></div>'; });
-    holder.innerHTML = html + '</div><div class="legend"><span><i style="background:var(--accent)"></i>this checker</span><span><i style="background:var(--grey)"></i>range limit</span></div>';
+    holder.innerHTML = html + '</div><div class="legend"><span><i style="background:var(--accent)"></i>this checker</span><span><i style="background:var(--plain)"></i>plain flatline and gap checks</span><span><i style="background:var(--grey)"></i>range limit</span></div>';
     D.roc.kinds.forEach(function (k, ki) {
       var sizes = D.roc.sizes[ki], box = $('#sz' + ki), W = Math.max(250, box.clientWidth || 300), Hh = 150, m = { l: 36, r: 8, t: 8, b: 30 };
       var svg = svgEl('svg', { width: W, height: Hh, viewBox: '0 0 ' + W + ' ' + Hh });
       var X = function (i) { return m.l + (i + 0.5) / sizes.length * (W - m.l - m.r); }, Y = function (v) { return Hh - m.b - v * (Hh - m.t - m.b); };
       [0, 0.5, 1].forEach(function (v) { svgEl('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: '#ece9e4' }, svg); text(svg, m.l - 5, Y(v) + 4, (100 * v) + '%', { 'text-anchor': 'end', 'font-size': 10, 'font-family': 'IBM Plex Mono, monospace' }); });
-      var pts = { c: [], r: [] };
+      var pts = { c: [], p: [], r: [] };
       sizes.forEach(function (s, si) {
-        var n = 0, c = 0, g = 0;
-        D.roc.planted.forEach(function (p) { if (p[0] === ki && p[1] === si) { n++; if (p[3] > 1) c++; if (p[4] > SC.RANGE_MARGIN) g++; } });
-        pts.c.push([X(si), Y(n ? c / n : 0)]); pts.r.push([X(si), Y(n ? g / n : 0)]);
+        var n = 0, c = 0, g = 0, q = 0;
+        D.roc.planted.forEach(function (p) { if (p[0] === ki && p[1] === si) { n++; if (p[3] > 1 && p[7] <= 1) c++; if (p[4] > SC.RANGE_MARGIN && p[8] <= SC.RANGE_MARGIN) g++; if (p[5] > 1 && p[9] <= 1) q++; } });
+        pts.c.push([X(si), Y(n ? c / n : 0)]); pts.r.push([X(si), Y(n ? g / n : 0)]); pts.p.push([X(si), Y(n ? q / n : 0)]);
         var lab = s === 'never' ? 'never' : (k.indexOf('rows') === 0 ? String(s) : (s < 1 ? (s * 1000) + 'ms' : s + 's'));
         text(svg, X(si), Hh - 14, lab, { 'text-anchor': 'middle', 'font-size': 9.5, 'font-family': 'IBM Plex Mono, monospace' });
       });
       text(svg, (m.l + W - m.r) / 2, Hh - 2, k.indexOf('rows') === 0 ? 'rows' : 'duration', { 'text-anchor': 'middle', 'font-size': 10 });
-      ['r', 'c'].forEach(function (w) {
-        var col = w === 'c' ? '#2c4a6b' : '#9aa1a9';
+      ['r', 'p', 'c'].forEach(function (w) {
+        var col = w === 'c' ? '#2c4a6b' : w === 'p' ? '#6f98c2' : '#b9bec4';
         svgEl('path', { d: 'M' + pts[w].map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join('L'), fill: 'none', stroke: col, 'stroke-width': 1.6 }, svg);
         pts[w].forEach(function (p) { svgEl('circle', { cx: p[0], cy: p[1], r: w === 'c' ? 3.2 : 2.6, fill: col }, svg); });
       });
@@ -335,7 +370,7 @@
     var zeroUpTo = function (k) {
       var ki = D.roc.kinds.indexOf(k), sizes = D.roc.sizes[ki], last = null;
       for (var si = 0; si < sizes.length; si++) {
-        var c = D.roc.planted.filter(function (p) { return p[0] === ki && p[1] === si && p[3] > 1; }).length;
+        var c = D.roc.planted.filter(function (p) { return p[0] === ki && p[1] === si && p[3] > 1 && p[7] <= 1; }).length;
         if (c === 0) last = sizes[si]; else break;
       }
       return last;
@@ -345,7 +380,9 @@
       (rr && rr > 1 ? ' and nothing up to ' + rr + ' rows' : '') + ' is caught, no freeze of ' + SC.fmtDur(fl) + ' or less, and no valve late by ' + SC.fmtDur(vl) +
       ' or less, because each sits inside the allowance for normal behaviour. Freezes are caught from about the length of their channel\'s limit: ' +
       SC.fmtDur(D.thresholds.flat.p_fast) + ' for fast pressure, ' + SC.fmtDur(D.thresholds.flat.p_slow) + ' for slow pressure and load, ' + SC.fmtDur(D.thresholds.flat.temp) + ' for temperature.</p>' +
-      '<p>A sensor frozen with its noise kept is caught ' + nk.checker + ' time in ' + nk.n + ', at every size. That is the blind spot the coda describes, with what would fix it.</p>';
+      '<p>A plain flatline of ' + SC.SIMPLE_FLAT + ' samples catches more of the frozen sensors than the checker does (' + H.perKind.flat.simple + ' against ' + H.perKind.flat.checker +
+      ' of ' + H.perKind.flat.n + '), because ' + SC.SIMPLE_FLAT + ' samples is a shorter wait than the checker\'s limit on fast pressure channels and thermocouples. ' +
+      'A sensor frozen with its noise kept is caught ' + nk.checker + ' time in ' + nk.n + ' by the checker and ' + nk.simple + ' times by the plain checks. That is the blind spot the coda describes, with what would fix it.</p>';
   }
 
   /* ---------------- act four ---------------- */
@@ -372,7 +409,7 @@
     var r = D.reports.filter(function (x) { return x.id === $('#rsel').value; })[0], st = D.stands[r.stand];
     var src = r.source.file + (r.source.sha256 ? ', sha256 ' + r.source.sha256.slice(0, 16) : r.source.md5_archive ? ', archive md5 ' + r.source.md5_archive.slice(0, 16) : '');
     var nf = r.rows.filter(function (x) { return x.status === 'FAIL'; }).length;
-    var h = '<div id="rephead"><div class="card-title">Post-test data check</div>' +
+    var h = '<div id="rephead"><div class="card-title">Post-test data check, for review</div>' +
       '<div class="rep-head"><div><b>Stand</b>' + esc(st.title) + '</div><div><b>Run</b>' + esc(r.label) + '</div><div><b>Date</b>' + esc(r.date) + '</div>' +
       '<div><b>Source</b>' + esc(src) + '</div><div><b>Published by</b>' + esc(st.publisher) + ', ' + esc(st.licence) + '</div>' +
       '<div><b>Checked with</b>stand-check ' + esc(D.code || '') + ', thresholds as planned</div></div>' +
@@ -387,30 +424,38 @@
           '</b><div class="small mono">' + esc(x.name) + '</div></td><td class="small">' + esc(x.text) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     });
+    if (r.rail.length) {
+      h += '<div class="rep-sec">Added after the measured runs: rail check</div><div class="tscroll"><table><tbody>' + r.rail.map(function (x) {
+        return '<tr><td style="width:62px"><span class="pill fail">flag</span></td><td style="width:36%"><b>' + esc(x.label) + '</b><div class="small mono">' + esc(x.name) +
+          '</div></td><td class="small">' + esc(x.text) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    }
     if (r.spare.length) h += '<p class="note">Not checked, because the documentation does not name them: ' + esc(r.spare.join(', ')) + '.</p>';
+    h += '<p class="note">Not covered by this table: calibration records, pre-test zero against a known ambient reading, and post-test drift.</p>';
     if (r.notes.length) h += '<div class="rep-sec">Notes</div><ul class="small" style="padding-left:18px">' + r.notes.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
-    h += '<div class="sign"><div>Checked by (name, date)</div><div>Approved by (name, date)</div></div>';
+    h += '<div class="sign"><div>Reviewed by (name, date)</div><div>Notes</div></div>';
     $('#report').innerHTML = h;
   }
 
   /* ---------------- coda ---------------- */
   function coda() {
-    var c = 0, g = 0, fc = 0, fr = 0;
-    D.roc.planted.forEach(function (p) { if (p[3] > 1) c++; if (p[4] > SC.RANGE_MARGIN) g++; });
-    D.roc.healthy.forEach(function (h) { if (h[1] > 1) fc++; if (h[2] > SC.RANGE_MARGIN) fr++; });
+    var c = 0, g = 0, q = 0, fc = 0, fr = 0, fq = 0;
+    D.roc.planted.forEach(function (p) { if (p[3] > 1 && p[7] <= 1) c++; if (p[4] > SC.RANGE_MARGIN && p[8] <= SC.RANGE_MARGIN) g++; if (p[5] > 1 && p[9] <= 1) q++; });
+    D.roc.healthy.forEach(function (h) { if (h[1] > 1) fc++; if (h[2] > SC.RANGE_MARGIN) fr++; if (h[3] > 1) fq++; });
     var worst = 0, n = 0, bad = 0;
     D.hotfire.forEach(function (run) {
       SC.siteKeys(run).forEach(function (k) {
-        var s = SC.siteScore(run, k), p = run.python[k]; n++;
-        var d = Math.max(Math.abs(s.score - p[0]) / Math.max(1e-9, Math.abs(p[0])), Math.abs(s.m - p[1]) / Math.max(1e-9, Math.abs(p[1])));
+        var s = SC.siteScore(run, k), p = run.python[k], js = [s.score, s.m, s.simple, s.rail]; n++;
+        var d = 0; js.forEach(function (v, i) { d = Math.max(d, Math.abs(v - p[i]) / Math.max(1e-9, Math.abs(p[i]))); });
         if (d > 1e-9) bad++;
         worst = Math.max(worst, d);
       });
     });
-    var ok = c === H.caught && g === H.caughtRange && fc === H.falseChecker && fr === H.falseRange && bad === 0;
-    $('#selfcheck').innerHTML = 'Counted here, in your browser, from the per-site scores: <b>' + c + '</b> of ' + D.roc.planted.length + ' planted faults caught by the checker (the build says ' + H.caught +
-      '), <b>' + g + '</b> by the range limit (build: ' + H.caughtRange + '), and <b>' + fc + '</b> and <b>' + fr + '</b> false alarms on ' + D.roc.healthy.length + ' healthy sites (build: ' +
-      H.falseChecker + ' and ' + H.falseRange + '). The JavaScript checker re-checked both hotfire logs: ' + (n - bad) + ' of ' + n + ' site scores match the Python build, the largest relative difference ' +
+    var ok = c === H.caught && g === H.caughtRange && q === H.caughtSimple && fc === H.falseChecker && fr === H.falseRange && fq === H.falseSimple && bad === 0;
+    $('#selfcheck').innerHTML = 'Counted here, in your browser, from the per-site scores: <b>' + c + '</b>, <b>' + q + '</b> and <b>' + g + '</b> of ' + D.roc.planted.length +
+      ' planted faults caught by the checker, the plain checks and the range limit (the build says ' + H.caught + ', ' + H.caughtSimple + ' and ' + H.caughtRange + '), and <b>' + fc +
+      '</b>, <b>' + fq + '</b> and <b>' + fr + '</b> false alarms on ' + D.roc.healthy.length + ' healthy sites (build: ' + H.falseChecker + ', ' + H.falseSimple + ' and ' + H.falseRange +
+      '). The JavaScript checker re-checked both hotfire logs: ' + (n - bad) + ' of ' + n + ' site scores match the Python build, the largest relative difference ' +
       (worst === 0 ? 'zero' : worst.toExponential(1)) + '. ' + (ok ? 'Everything agrees.' : '<b>Something disagrees; the numbers above should not be trusted until it is fixed.</b>');
 
     var S = D.stands, ms = S.dlr.measured + S.delft.measured + S.sterenberg.measured;
@@ -427,8 +472,11 @@
       ['Fitted on', D.totals.fit + ' fit runs, by reading each channel type\'s longest normal flat stretch, interval and response time.'],
       ['Scored on', D.totals.measured + ' measured runs: ' + H.healthy + ' healthy sites for false alarms, and ' + H.planted + ' faults planted into them.'],
       ['False alarms', H.falseChecker + ' of ' + H.healthy + ' healthy sites (' + pct(H.falseChecker, H.healthy, 1) + ' percent); the range limit, ' + H.falseRange + '.'],
-      ['Against a range limit', H.caught + ' of ' + H.planted + ' planted faults caught, against ' + H.caughtRange + ' for the range limit at the same false-alarm count.'],
-      ['Verdict', 'Useful for what a range limit cannot see, at no extra false alarms on this data; blind to a frozen sensor that keeps its noise, and to anything shorter than its limits.']
+      ['Against plain checks', H.caught + ' of ' + H.planted + ' planted faults caught, against ' + H.caughtSimple + ' for a ' + D.thresholds.simpleFlat +
+        '-sample flatline and a gap of one and a half times the median, and ' + H.caughtRange + ' for the range limit. On the real logs, ' + H.realChecker + ', ' + H.realSimple + ' and ' + H.realRange + ' of ' + H.realTotal + '.'],
+      ['Added afterwards', 'A rail check (flat at the channel\'s own highest or lowest value, more than ' + D.thresholds.railMin.p_fast + ' samples, ' + D.thresholds.railMin.temp +
+        ' for temperature), written after seeing the misses it fixes and reported apart: ' + H.realWithRail + ' of ' + H.realTotal + ' real problems with it, ' + H.falseWithRail + ' false alarms.'],
+      ['Verdict', 'Adds what plain checks cannot see (repeated rows, valve timing, untimed records) at the same false-alarm count; loses to a plain flatline on frozen fast channels, and blind to a frozen sensor that keeps its noise.']
     ];
     $('#mcard').innerHTML = rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td class="small">' + r[1] + '</td></tr>'; }).join('');
 
@@ -439,6 +487,8 @@
     $('#lim-clip').textContent = X.clipMsMin + ' to ' + X.clipMsMax + ' ms';
     $('#lim-fast').textContent = SC.fmtDur(D.thresholds.flat.p_fast);
     $('#lim-drift').textContent = X.delftDriftPct;
+    $('#lim-fit').textContent = 'The ' + SC.fmtDur(D.thresholds.flat.temp) + ' limit on temperature and ' + SC.fmtDur(D.thresholds.flat.p_slow) +
+      ' on slow pressure come from fit runs whose longest normal flat stretches were short.';
     $('#lim-hot').textContent = 'Of the ' + D.totals.measured + ' measured runs, ' + D.stands.sterenberg.measured + ' is a hotfire; the rest are igniter and cold-flow runs.';
 
     $('#sources').innerHTML = D.roc.stands.map(function (k) {
@@ -454,8 +504,8 @@
     var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     var STEPS = [
       { sel: 'header h1', k: 'Welcome · 1 of 8', html: 'This page asks one question about test-stand data: <b>did the logger record what actually happened?</b> It answers with a checker run on ' + D.totals.runs + ' public runs from three projects.' },
-      { sel: '#bars', k: 'The answer · 2 of 8', html: 'Each bar is the share of faults planted into real runs that a check caught. Dark is the checker, grey a range limit, dashed is blind luck. <b>Drag the slider</b> to make both checks stricter or looser.' },
-      { sel: '#domainsvg', k: 'The domain · 3 of 8', html: 'What a stand logs, and the three faults that leave every value in range: a missing row, a frozen sensor, a valve that ignores its command.' },
+      { sel: '#bars', k: 'The answer · 2 of 8', html: 'Each bar is the share of faults planted into real runs that a check caught. Dark is the checker, mid blue plain flatline and gap checks, grey a range limit, dashed is blind luck. <b>Drag the slider below</b> to make the checks stricter or looser.' },
+      { sel: '#primerbox summary', k: 'The domain · 3 of 8', html: 'If a test log is new to you, <b>open this</b>: what a stand logs, the three faults that leave every value in range, and the terms used on the page.' },
       { sel: '#sp0', k: 'One run · 4 of 8', html: 'Real runs, read by the checker. <b>Click a run in the row of buttons above</b>: red shading is what it flagged, purple what it missed.' },
       { sel: '#fchips', k: 'The real logs · 5 of 8', html: 'Every flag on the public logs, labelled by me as a real problem or a false alarm. <b>Click a button here</b> to see the misses or the false alarms, and click a row in the table below for the reason.' },
       { sel: '#plantviz', k: 'Your turn · 6 of 8', html: '<b>Pick a channel, a fault and a size in the controls above.</b> The checker runs again in your browser and both verdicts update.' },
@@ -506,8 +556,7 @@
     header();
     bluf();
     standsTable();
-    var dom = $('#domainsvg');
-    dom.innerHTML = DOMAIN_SVG;
+    $('#domainsvg').innerHTML = DOMAIN_SVG;
     showcase();
     findings();
     plantSetup();

@@ -171,3 +171,26 @@ def test_planted_flat_segment_is_exactly_flat_and_noisy_one_is_not():
     assert sc > 1
     new, _, info = inject.plant(run, 'channel:a', 'flat_noisy', 1.0, np.random.default_rng(0))
     assert checker.stuck(new['streams']['s']['t'], new['channels']['a']['x'], 'p_slow')[0] < 1
+
+
+# ---------------------------------------------------------------- added after the measured runs
+
+def test_rail_check_flags_a_channel_flat_at_its_own_top():
+    t = np.arange(3000) / 150000.0
+    x = np.sin(np.linspace(0, 3, 3000)) * 60 + noisy(3000, 0.2)
+    top = x.max()
+    x[1000:1300] = top + 1                              # 300 samples sitting at the record maximum
+    score, ev = checker.rail(t, x, 'p_fast')
+    assert score > 1 and 'highest' in ev['text']
+    assert checker.rail(t, noisy(3000) + np.arange(3000) * 0.01, 'p_fast')[0] < 1
+
+
+def test_plain_checks():
+    t = np.arange(1000) / 100.0
+    x = noisy(1000)
+    assert checker.simple_flat(t, x) < 1
+    x[100:202] = x[99]                                  # 103 identical samples
+    assert checker.simple_flat(t, x) > 1
+    assert checker.simple_gap(dict(t=t, timing='regular')) < 1
+    assert checker.simple_gap(dict(t=np.delete(t, 500), timing='regular')) > 1   # one missing row
+    assert checker.simple_gap(dict(t=t, timing='untimed')) == checker.NO_RANGE

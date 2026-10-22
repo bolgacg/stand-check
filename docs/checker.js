@@ -6,6 +6,9 @@
   var ALWAYS = 1000, NO_RANGE = -1, MIN_FLAT = 5, RANGE_MARGIN = 0.1, PERSIST = 3;
   var W_ELEC = 0.1, W_POS = 1.5, POS_TOL = 10;
   var FLAT_LIMIT = { p_fast: 0.05, p_slow: 0.5, load: 0.5, temp: 3.0, pos: 2.0, flow: 2.0, density: 2.0 };
+  // added after the measured runs (PLAN.md changes 4 and 5)
+  var RAIL_MIN = { p_fast: 10, p_slow: 10, load: 10, temp: 52, pos: 10, flow: 10, density: 54 };
+  var SIMPLE_FLAT = 100, SIMPLE_GAP = 0.5;
 
   function longestTrue(mask) {
     var best = 0, bestStart = 0, cur = 0, start = 0;
@@ -33,6 +36,24 @@
     var f = flat(t, x), limit = FLAT_LIMIT[cls];
     return { score: f[0] >= MIN_FLAT ? f[2] / limit : 0, samples: f[0], start: t[f[1]], seconds: f[2], limit: limit,
              whole: f[0] >= x.length - 1, value: x[f[1]] };
+  }
+  function rail(t, x, cls) {
+    var hi = -Infinity, lo = Infinity, best = [0, 0, null, ''];
+    for (var i = 0; i < x.length; i++) { if (x[i] > hi) hi = x[i]; if (x[i] < lo) lo = x[i]; }
+    [[hi, 'highest'], [lo, 'lowest']].forEach(function (vw) {
+      var m = new Uint8Array(x.length); for (var j = 0; j < x.length; j++) m[j] = x[j] === vw[0] ? 1 : 0;
+      var r = longestTrue(m); if (r[0] > best[0]) best = [r[0], r[1], vw[0], vw[1]];
+    });
+    var n = best[0], k = best[1], lim = RAIL_MIN[cls];
+    var text = n >= x.length ? 'never leaves one value, ' + fmtVal(best[2])
+      : 'sits at its own ' + best[3] + ' value, ' + fmtVal(best[2]) + ', for ' + n + ' samples (' + fmtDur(t[k + n - 1] - t[k]) + ') from t = ' + fmtT(t[k]) + ' (limit ' + lim + ' samples)';
+    return { score: n / lim, text: text };
+  }
+  function simpleFlat(t, x) { return flat(t, x)[0] / SIMPLE_FLAT; }
+  function simpleGap(t) {
+    var dt = [], mx = -Infinity;
+    for (var i = 1; i < t.length; i++) { var d = t[i] - t[i - 1]; if (d <= 0) return ALWAYS; dt.push(d); if (d > mx) mx = d; }
+    return Math.max(0, (mx / median(dt) - 1) / SIMPLE_GAP);
   }
   function rangeMstar(t, x, lo, hi) {
     var span = Math.max(hi - lo, 1e-9 * Math.max(1, Math.abs(hi))), n = x.length, e = new Float64Array(n);
@@ -120,15 +141,15 @@
   }
   function siteScore(run, key) {
     var kind = key.split(':')[0], name = key.slice(kind.length + 1);
-    if (kind === 'stream') { var g = integrity(run.t, liveArrays(run), run.declaredRate); return { score: g.score, m: NO_RANGE, ev: g }; }
+    if (kind === 'stream') { var g = integrity(run.t, liveArrays(run), run.declaredRate); return { score: g.score, m: NO_RANGE, ev: g, simple: simpleGap(run.t), rail: NO_RANGE }; }
     if (kind === 'channel') {
-      var ch = run.channels[name], s = stuck(run.t, ch.x, ch.cls), r = rangeMstar(run.t, ch.x, ch.lo, ch.hi);
-      return { score: Math.max(s.score, Math.max(0, r.m) / RANGE_MARGIN), m: r.m, stuck: s, range: r };
+      var ch = run.channels[name], s = stuck(run.t, ch.x, ch.cls), r = rangeMstar(run.t, ch.x, ch.lo, ch.hi), ra = rail(run.t, ch.x, ch.cls);
+      return { score: Math.max(s.score, Math.max(0, r.m) / RANGE_MARGIN), m: r.m, stuck: s, range: r, simple: simpleFlat(run.t, ch.x), rail: ra.score, railText: ra.text };
     }
     var v = run.valves.filter(function (q) { return q.name === name; })[0], fb = run.channels[v.fb];
     var res = v.kind === 'electrical' ? valveElectrical(run.t, v.cmd, fb.x, v.batt) : valvePosition(run.t, v.cmd, fb.x);
     var m = fb.role === 'valve' ? rangeMstar(run.t, fb.x, fb.lo, fb.hi).m : NO_RANGE;
-    return { score: res.score, m: m, ev: res };
+    return { score: res.score, m: m, ev: res, simple: NO_RANGE, rail: NO_RANGE };
   }
   function siteKeys(run) {
     var keys = ['stream:telemetry'];
@@ -247,5 +268,6 @@
 
   root.SC = { stuck: stuck, rangeMstar: rangeMstar, integrity: integrity, valveElectrical: valveElectrical, valvePosition: valvePosition,
     siteScore: siteScore, siteKeys: siteKeys, verdict: verdict, plant: plant, fmtVal: fmtVal, fmtDur: fmtDur, RANGE_MARGIN: RANGE_MARGIN,
+    SIMPLE_FLAT: SIMPLE_FLAT,
     FLAT_LIMIT: FLAT_LIMIT };
 })(typeof window !== 'undefined' ? window : globalThis);

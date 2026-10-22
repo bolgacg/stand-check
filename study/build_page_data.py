@@ -48,34 +48,54 @@ def window(run, c, t0, t1):
 def curves(results):
     H, C = results['healthy'], results['cases']
     kinds = list(inject.KINDS)
-    healthy = [[SITE_KINDS.index(h['kind']), f10(h['score']), f10(h['m'])] for h in H]
-    planted = [[kinds.index(c['kind']), c['size'], STAND_ORDER.index(c['stand']), f10(c['score']), f10(c['m'])] for c in C]
+    # healthy: [site kind, checker, range margin, simple checks, rail check]
+    # planted: [fault kind, size, stand, checker, range, simple, rail, then the same four for the site as published]
+    healthy = [[SITE_KINDS.index(h['kind']), f10(h['score']), f10(h['m']), f10(h['simple']), f10(h['rail'])] for h in H]
+    planted = [[kinds.index(c['kind']), c['size'], STAND_ORDER.index(c['stand']), f10(c['score']), f10(c['m']), f10(c['simple']),
+                f10(c['rail'])] + [f10(b) for b in c['before']] for c in C]
     return dict(kinds=kinds, kindNames=[KIND_NAMES[k] for k in kinds], kindSite=[SITE_KINDS.index(inject.KIND_SITE[k]) for k in kinds],
                 sizes=[[('never' if s == 'never' else s) for s in inject.KINDS[k]] for k in kinds],
                 siteKinds=SITE_KINDS, stands=STAND_ORDER, healthy=healthy, planted=planted)
 
 
+def caught(c, method):
+    """A planted fault counts as caught only when it changes the site's verdict: flagged with the fault,
+    not flagged as published. At the marked settings the planting pool already guarantees the second
+    half for the checker and the range limit."""
+    i, thr = {'checker': (0, 1.0), 'range': (1, checker.RANGE_MARGIN), 'simple': (2, 1.0), 'rail': (3, 1.0)}[method]
+    after = [c['score'], c['m'], c['simple'], c['rail']][i]
+    return after > thr and c['before'][i] <= thr
+
+
+def caught_with_rail(c):
+    return max(c['score'], c['rail']) > 1 and max(c['before'][0], c['before'][3]) <= 1
+
+
 def headline(results, real_rows):
     H, C = results['healthy'], results['cases']
-    hs = np.array([h['score'] for h in H]); hm = np.array([h['m'] for h in H])
-    cs = np.array([c['score'] for c in C]); cm = np.array([c['m'] for c in C])
     per = {}
     for k in inject.KINDS:
         sel = [c for c in C if c['kind'] == k]
-        per[k] = dict(n=len(sel), checker=int(sum(c['score'] > 1 for c in sel)), range=int(sum(c['m'] > checker.RANGE_MARGIN for c in sel)))
+        per[k] = dict(n=len(sel), checker=sum(caught(c, 'checker') for c in sel), range=sum(caught(c, 'range') for c in sel),
+                      simple=sum(caught(c, 'simple') for c in sel), withRail=sum(caught_with_rail(c) for c in sel))
     visible = [c for c in C if c['kind'] != 'flat_noisy']
     out = dict(
-        planted=len(C), caught=int((cs > 1).sum()), caughtRange=int((cm > checker.RANGE_MARGIN).sum()),
-        plantedVisible=len(visible), caughtVisible=int(sum(c['score'] > 1 for c in visible)),
-        healthy=len(H), falseChecker=int((hs > 1).sum()), falseRange=int((hm > checker.RANGE_MARGIN).sum()),
+        planted=len(C), caught=sum(caught(c, 'checker') for c in C), caughtRange=sum(caught(c, 'range') for c in C),
+        caughtSimple=sum(caught(c, 'simple') for c in C), caughtWithRail=sum(caught_with_rail(c) for c in C),
+        plantedVisible=len(visible), caughtVisible=sum(caught(c, 'checker') for c in visible),
+        healthy=len(H), falseChecker=sum(h['score'] > 1 for h in H), falseRange=sum(h['m'] > checker.RANGE_MARGIN for h in H),
+        falseSimple=sum(h['simple'] > 1 for h in H), falseWithRail=sum(max(h['score'], h['rail']) > 1 for h in H),
         falseCheckerOwn=int(sum(1 for h in H if h['score'] > 1 and not (h['kind'] == 'channel' and h['m'] > checker.RANGE_MARGIN))),
         perKind=per)
     real = [r for r in real_rows if r['label'] in ('real', 'missed')]
+    fl = [r for r in real_rows if r['label'] == 'false']
     out.update(realTotal=len(real), realChecker=sum(1 for r in real if r['checker']), realRange=sum(1 for r in real if r['range']),
-               realMissedBoth=sum(1 for r in real if not r['checker'] and not r['range']),
-               realOnlyChecker=sum(1 for r in real if r['checker'] and not r['range']),
-               falseAllChecker=sum(1 for r in real_rows if r['label'] == 'false' and r['checker']),
-               falseAllRange=sum(1 for r in real_rows if r['label'] == 'false' and r['range']))
+               realSimple=sum(1 for r in real if r['simple']), realWithRail=sum(1 for r in real if r['checker'] or r['rail']),
+               realMissedChecker=sum(1 for r in real if not r['checker']),
+               realMissedAll=sum(1 for r in real if not (r['checker'] or r['rail'] or r['simple'] or r['range'])),
+               falseAllChecker=sum(1 for r in fl if r['checker']), falseAllRange=sum(1 for r in fl if r['range']),
+               falseAllSimple=sum(1 for r in fl if r['simple']), falseAllRail=sum(1 for r in fl if r['rail']))
+    out = {k: (int(v) if isinstance(v, (bool, np.bool_, np.integer)) else v) for k, v in out.items()}
     return out
 
 
@@ -91,14 +111,18 @@ def findings(runs, real, adj):
         rows.append(dict(run=rid, runLabel=run['label'], stand=run['stand'], split=run['split'], site=site,
                          siteLabel=checker.site_label(run, site),
                          checker=bool(s['score'] > 1), range=bool(s['m'] > checker.RANGE_MARGIN),
+                         simple=bool(s['simple'] > 1), rail=bool(s['rail'] > 1),
                          checkerText=checker.verdict_text(run, site, s) if s['score'] > 1 else '',
+                         railText=s['ev']['rail']['text'] if s['rail'] > 1 else '',
                          rangeText=range_site_text(run, site, s), label=lab['label'], category=lab['category'], reason=lab['reason']))
     for m in adj['missed']:
         run = by[m['run']]
         s = real[m['run']][m['site']]
         rows.append(dict(run=m['run'], runLabel=run['label'], stand=run['stand'], split=run['split'], site=m['site'],
                          siteLabel=checker.site_label(run, m['site']), checker=bool(s['score'] > 1), range=bool(s['m'] > checker.RANGE_MARGIN),
-                         checkerText='', rangeText='', label='missed', category=m['category'], reason=m['reason']))
+                         simple=bool(s['simple'] > 1), rail=bool(s['rail'] > 1),
+                         checkerText='', railText=s['ev']['rail']['text'] if s['rail'] > 1 else '', rangeText='',
+                         label='missed', category=m['category'], reason=m['reason']))
     return rows
 
 
@@ -137,9 +161,11 @@ def report(run, sites):
         rows.append(dict(sec=sec, label=checker.site_label(run, key), name=key.split(':', 1)[1],
                          status='FAIL' if s['score'] > 1 else 'PASS', score=r4(s['score']),
                          text=checker.verdict_text(run, key, s)))
+    rail = [dict(label=checker.site_label(run, key), name=key.split(':', 1)[1], text=s['ev']['rail']['text'])
+            for key, s in sites.items() if s['kind'] == 'channel' and s['rail'] > 1]
     spare = [c for c, ch in run['channels'].items() if ch['role'] == 'spare']
     return dict(id=run['run_id'], label=run['label'], stand=run['stand'], date=run['date'], split=run['split'],
-                source=run['source'], notes=run.get('notes', []), rows=rows, spare=spare,
+                source=run['source'], notes=run.get('notes', []), rows=rows, spare=spare, rail=rail,
                 verdict='FAIL' if any(r['status'] == 'FAIL' for r in rows) else 'PASS',
                 n=dict(records=sum(1 for r in rows if r['sec'] == 'Records'), channels=sum(1 for r in rows if r['sec'] == 'Channels'),
                        valves=sum(1 for r in rows if r['sec'] == 'Valves')))
@@ -256,7 +282,7 @@ def hotfire(runs, env, real):
                             lo=lo, hi=hi)
         valves = [dict(name=v['name'], kind=v['kind'], fb=v['fb'], label=v['label'], cmd=[f10(x) for x in v['cmd']],
                        batt=[f10(x) for x in v['batt']] if 'batt' in v else None) for v in run['valves']]
-        py = {k: [s['score'], s['m']] for k, s in real[run['run_id']].items()}
+        py = {k: [s['score'], s['m'], s['simple'], s['rail']] for k, s in real[run['run_id']].items()}
         out.append(dict(id=run['run_id'], label=run['label'], split=run['split'], t=[f10(v) for v in st['t']],
                         declaredRate=st['declared_rate'], channels=chans, valves=valves, active=list(run['active']), python=py))
     return out
@@ -293,6 +319,7 @@ def build(runs, env, real, adj, results, sha):
         totals=dict(runs=len(runs), fit=sum(r['split'] == 'fit' for r in runs), measured=sum(r['split'] == 'measured' for r in runs),
                     sites=sum(len(v) for v in real.values()), emptyFiles=len(empty)),
         thresholds=dict(flat=stands.FLAT_LIMIT, rangeMargin=checker.RANGE_MARGIN, persist=checker.PERSIST, minFlat=checker.MIN_FLAT,
+                        railMin=checker.RAIL_MIN, simpleFlat=checker.SIMPLE_FLAT, simpleGap=checker.SIMPLE_GAP,
                         wElec=checker.W_ELEC, wPos=checker.W_POS, posTol=checker.POS_TOL, wResp=checker.W_RESP),
         roc=curves(results), headline=headline(results, rows),
         findings=group_findings(rows),
